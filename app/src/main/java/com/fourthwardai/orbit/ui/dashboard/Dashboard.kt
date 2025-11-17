@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.material3.Button
@@ -35,6 +37,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.fourthwardai.orbit.R
+import com.fourthwardai.orbit.domain.Article
+import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 import kotlinx.coroutines.launch
 
@@ -43,11 +47,8 @@ import kotlinx.coroutines.launch
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun Dashboard(modifier: Modifier = Modifier) {
-    val tabs = listOf("Medium", "Android", "AI")
-    // pass page count as Int to rememberPagerState (expected by the bundled Compose version)
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { tabs.size })
-    val coroutineScope = rememberCoroutineScope()
+fun Dashboard(articles: List<Article>, modifier: Modifier = Modifier) {
+
 
     Scaffold(
         topBar = {
@@ -61,38 +62,26 @@ fun Dashboard(modifier: Modifier = Modifier) {
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        BoxWithConstraints {
+        BoxWithConstraints(modifier = Modifier.padding(innerPadding)) {
             val heightPx = with(LocalDensity.current) { maxHeight.toPx() }
             val gradient = Brush.verticalGradient(
                 colors = listOf(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.primary),
                 startY = heightPx / 2f,
                 endY = heightPx
             )
-        val gradientColors = listOf(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.primary)
-        Column(modifier = Modifier
+
+            LazyColumn (modifier = Modifier
+
             .background(brush = gradient)
             .fillMaxSize()
-            .padding(innerPadding)) {
+            .padding(horizontal = 16.dp)) {
 
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                ElevatedCard(
-
-                    modifier = Modifier.padding(16.dp).fillMaxWidth().height(200.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        Text(
-                            text = "content",
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                        Button(
-                            onClick = { /*TODO*/ },
-                            modifier = Modifier.padding(16.dp).fillMaxWidth()
-                        ) {
-                            Text(text = "Button")
-                        }
-                    }
+                items(articles) { article ->
+                    ArticleCard(article)
+                    VerticalSpacer(16.dp)
                 }
-            }
+
+
         }
 
         }
@@ -103,6 +92,6 @@ fun Dashboard(modifier: Modifier = Modifier) {
 @Composable
 fun DashboardPreview() {
     OrbitTheme() {
-        Dashboard()
+        Dashboard(articles = listOf(getArticlePreviewData(), getArticlePreviewData(), getArticlePreviewData(), getArticlePreviewData()))
     }
 }

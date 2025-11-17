@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import com.fourthwardai.orbit.ui.dashboard.Dashboard
+import com.fourthwardai.orbit.ui.dashboard.getArticlePreviewData
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +14,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             OrbitTheme {
-                Dashboard()
+                Dashboard(articles = listOf(getArticlePreviewData(), getArticlePreviewData(), getArticlePreviewData(), getArticlePreviewData()))
             }
         }
     }
