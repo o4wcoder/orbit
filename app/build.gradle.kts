@@ -2,7 +2,14 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.hilt)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.spotless)
+    id("kotlin-kapt")
 }
+
+// Use the legacy apply for kapt to avoid plugin version resolution conflicts
+apply(plugin = "kotlin-kapt")
 
 android {
     namespace = "com.fourthwardai.orbit"
@@ -25,7 +32,7 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
     }
@@ -53,6 +60,9 @@ dependencies {
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.coil.compose)
     implementation(libs.androidx.compose.runtime)
+    // Hilt
+    implementation(libs.hilt.android)
+    kapt(libs.hilt.compiler)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -60,4 +70,20 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        ktlint("1.0.1").editorConfigOverride(
+            mapOf(
+                "ktlint_standard_function-naming" to "disabled",
+            ),
+        )
+    }
+
+    kotlinGradle {
+        target("**/*.gradle.kts")
+        ktlint("1.0.1")
+    }
 }

@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.extensions.HorizontalSpacer
@@ -40,17 +39,18 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
             Image(
                 modifier = Modifier.fillMaxWidth(),
                 painter = painterResource(R.drawable.article_example),
-               // model = article.heroImageUrl,
+                // model = article.heroImageUrl,
                 contentScale = ContentScale.FillWidth,
-              //  placeholder =  painterResource(R.drawable.article_example) ,//else null,
-                contentDescription = null
+                //  placeholder =  painterResource(R.drawable.article_example) ,//else null,
+                contentDescription = null,
 
             )
             Column(modifier = Modifier.padding(horizontal = 8.dp)) {
-
                 VerticalSpacer(16.dp)
-                Text(text = article.title, 
-                    style = MaterialTheme.typography.titleLarge)
+                Text(
+                    text = article.title,
+                    style = MaterialTheme.typography.titleLarge,
+                )
 
                 VerticalSpacer(8.dp)
                 Row(modifier = Modifier.fillMaxWidth()) {
@@ -71,10 +71,10 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
 private fun ArticleCardPreview() {
     OrbitTheme {
         Box(modifier = Modifier.padding(16.dp)) {
-        ArticleCard(
-            article = getArticlePreviewData()
-        )
-    }
+            ArticleCard(
+                article = getArticlePreviewData(),
+            )
+        }
     }
 }
 
@@ -86,8 +86,6 @@ internal fun getArticlePreviewData() =
         author = "John Doe",
         readTime = 5,
         heroImageUrl = "https://example.com/image.jpg",
-        source = "Example Blog"
+        source = "Example Blog",
 
     )
-
-
