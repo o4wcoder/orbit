@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -40,16 +41,17 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                 VerticalSpacer(16.dp)
                 Text(
                     text = article.title,
-                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Medium,
+                    style = MaterialTheme.typography.headlineSmall,
                 )
 
                 VerticalSpacer(8.dp)
                 Row(modifier = Modifier.fillMaxWidth()) {
                     article.author?.let {
-                        Text(text = article.author)
+                        Text(text = article.author, style = MaterialTheme.typography.labelMedium)
                         HorizontalSpacer(16.dp)
                     }
-                    Text(text = article.source)
+                    Text(text = article.source, style = MaterialTheme.typography.labelMedium)
                 }
                 VerticalSpacer(8.dp)
             }
