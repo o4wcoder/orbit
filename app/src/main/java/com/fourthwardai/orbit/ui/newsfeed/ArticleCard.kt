@@ -1,5 +1,6 @@
 package com.fourthwardai.orbit.ui.newsfeed
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,7 @@ import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalInspectionMode
@@ -46,12 +48,19 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                 )
 
                 VerticalSpacer(8.dp)
-                Row(modifier = Modifier.fillMaxWidth()) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     article.author?.let {
                         Text(text = article.author, style = MaterialTheme.typography.labelMedium)
                         HorizontalSpacer(16.dp)
                     }
-                    Text(text = article.source, style = MaterialTheme.typography.labelMedium)
+                    Box(modifier = Modifier.background(color = MaterialTheme.colorScheme.tertiary, shape = MaterialTheme.shapes.small).padding(vertical = 2.dp, horizontal = 6.dp)) {
+                        Text(
+                            text = article.source,
+
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onTertiary,
+                        )
+                    }
                 }
                 VerticalSpacer(8.dp)
             }

@@ -12,7 +12,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -27,16 +26,19 @@ class NewsFeedViewModel @Inject constructor(
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
-    private val _dataState = MutableStateFlow<NewsFeedDataState?>(null)
+    private val _dataState = MutableStateFlow(NewsFeedDataState())
     private val dataState
         get() = _dataState.value
 
     val uiState: StateFlow<NewsFeedUiModel> =
         _dataState
-            .filterNotNull()
             .map { dataState ->
                 Timber.d("CGH: Mapping dataState to uiModel")
-                NewsFeedUiModel.Content(articles = dataState.articles)
+                if (dataState.isLoading) {
+                    NewsFeedUiModel.Loading
+                } else {
+                    NewsFeedUiModel.Content(articles = dataState.articles)
+                }
             }
             .catch {
                 currentCoroutineContext().ensureActive()
@@ -55,9 +57,15 @@ class NewsFeedViewModel @Inject constructor(
 
     private fun fetchArticles() {
         viewModelScope.launch(ioDispatcher) {
+            showLoadingSpinner()
             val articles = articleService.fetchArticles()
             Timber.d("CGH: got articles")
-            _dataState.update { currentState -> currentState?.copy(articles = articles) ?: NewsFeedDataState(articles = articles) }
+            hideLoadingSpinner()
+            _dataState.update { it.copy(articles = articles) }
         }
     }
+
+    private fun showLoadingSpinner() = _dataState.update { it.copy(isLoading = true) }
+
+    private fun hideLoadingSpinner() = _dataState.update { it.copy(isLoading = false) }
 }

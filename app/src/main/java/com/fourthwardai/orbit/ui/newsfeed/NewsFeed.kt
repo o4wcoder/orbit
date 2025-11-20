@@ -34,6 +34,7 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.LoadingSpinner
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import timber.log.Timber
 
 /**
  * Full-screen Dashboard composable that hosts a Scaffold with an AppBar showing the app title.
@@ -46,7 +47,7 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 fun NewsFeed(modifier: Modifier = Modifier) {
     val viewModel: NewsFeedViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
+    Timber.d("CGH: uiState = $uiState")
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
