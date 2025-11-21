@@ -3,6 +3,8 @@ package com.fourthwardai.orbit.ui.newsfeed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fourthwardai.orbit.di.IODispatcher
+import com.fourthwardai.orbit.network.onFailure
+import com.fourthwardai.orbit.network.onSuccess
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -33,7 +35,6 @@ class NewsFeedViewModel @Inject constructor(
     val uiState: StateFlow<NewsFeedUiModel> =
         _dataState
             .map { dataState ->
-                Timber.d("CGH: Mapping dataState to uiModel")
                 if (dataState.isLoading) {
                     NewsFeedUiModel.Loading
                 } else {
@@ -58,10 +59,15 @@ class NewsFeedViewModel @Inject constructor(
     private fun fetchArticles() {
         viewModelScope.launch(ioDispatcher) {
             showLoadingSpinner()
-            val articles = articleService.fetchArticles()
-            Timber.d("CGH: got articles")
+            val articlesResult = articleService.fetchArticles()
+            articlesResult.onSuccess { articles ->
+                _dataState.update { it.copy(articles = articles) }
+            }
+            articlesResult.onFailure { error ->
+                Timber.e("Failed to fetch articles. Error = ${error.message}")
+            }
+
             hideLoadingSpinner()
-            _dataState.update { it.copy(articles = articles) }
         }
     }
 
