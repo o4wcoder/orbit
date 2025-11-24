@@ -8,17 +8,25 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -27,14 +35,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.LoadingSpinner
+import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
-import timber.log.Timber
 
 /**
  * Full-screen Dashboard composable that hosts a Scaffold with an AppBar showing the app title.
@@ -47,7 +56,6 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 fun NewsFeed(modifier: Modifier = Modifier) {
     val viewModel: NewsFeedViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    Timber.d("CGH: uiState = $uiState")
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -80,6 +88,10 @@ fun NewsFeedContent(uiState: NewsFeedUiModel, modifier: Modifier = Modifier) {
             endY = heightPx,
         )
 
+        // Use the provided LocalWindowClassSize to pick layout based on width size class
+        val windowSizeClass = LocalWindowClassSize.current
+        val widthSizeClass = windowSizeClass.widthSizeClass
+
         Box(modifier = Modifier.fillMaxSize().background(brush = gradient)) {
             when (val state = uiState) {
                 is NewsFeedUiModel.Loading -> {
@@ -87,27 +99,55 @@ fun NewsFeedContent(uiState: NewsFeedUiModel, modifier: Modifier = Modifier) {
                 }
 
                 is NewsFeedUiModel.Content -> {
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(horizontal = 16.dp),
-                    ) {
-                        item {
-                            VerticalSpacer(16.dp)
-                        }
-                        items(
-                            state.articles,
-                            key = { article -> article.id },
-                        ) { article ->
+                    if (widthSizeClass == WindowWidthSizeClass.Compact) {
+                        // Phone: single column list
+                        LazyColumn(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                        ) {
+                            item {
+                                VerticalSpacer(16.dp)
+                            }
+                            items(
+                                state.articles,
+                                key = { article -> article.id },
+                            ) { article ->
 
-                            ArticleCard(
-                                article,
-                                modifier = Modifier.clickable(
-                                    role = Role.Button,
-                                    onClick = { openMediumOrBrowser(context, article.url) },
-                                ),
-                            )
-                            VerticalSpacer(16.dp)
+                                ArticleCard(
+                                    article,
+                                    modifier = Modifier.clickable(
+                                        role = Role.Button,
+                                        onClick = { openMediumOrBrowser(context, article.url) },
+                                    ),
+                                )
+                                VerticalSpacer(16.dp)
+                            }
+                        }
+                    } else {
+                        // Tablet: staggered grid with 2 columns and spacing between cells
+                        LazyVerticalStaggeredGrid(
+                            columns = StaggeredGridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize(),
+                            // increase content padding so outer edges are separated from screen edges
+                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+                        ) {
+                            items(
+                                state.articles,
+                                key = { article -> article.id },
+                            ) { article ->
+
+                                // give each grid item padding so there's visible spacing between cells
+                                ArticleCard(
+                                    article,
+                                    modifier = Modifier
+                                        .padding(12.dp)
+                                        .clickable(
+                                            role = Role.Button,
+                                            onClick = { openMediumOrBrowser(context, article.url) },
+                                        ),
+                                )
+                            }
                         }
                     }
                 }
@@ -126,7 +166,7 @@ fun openMediumOrBrowser(context: Context, url: String) {
 
     try {
         context.startActivity(mediumIntent)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         // 2) Fallback to any browser
         val browserIntent = Intent(Intent.ACTION_VIEW, uri)
         context.startActivity(browserIntent)
@@ -139,8 +179,25 @@ fun NewsFeedPreview() {
     OrbitTheme {
         NewsFeedContent(
             uiState = NewsFeedUiModel.Content(
-                articles = listOf(getArticlePreviewData(), getArticlePreviewData()),
+                articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2")),
             ),
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+@Preview(showBackground = true, name = "Tablet Preview", device = "spec:width=800dp,height=1280dp")
+@Composable
+fun NewsFeedTabletPreview() {
+    OrbitTheme {
+        CompositionLocalProvider(
+            LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
+        ) {
+            NewsFeedContent(
+                uiState = NewsFeedUiModel.Content(
+                    articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2"), getArticlePreviewData("3")),
+                ),
+            )
+        }
     }
 }

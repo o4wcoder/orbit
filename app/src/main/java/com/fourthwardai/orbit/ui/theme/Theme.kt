@@ -6,8 +6,10 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.material3.lightColorScheme
+import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
@@ -253,6 +255,10 @@ val unspecified_scheme = ColorFamily(
     Color.Unspecified,
     Color.Unspecified,
 )
+
+val LocalWindowClassSize = staticCompositionLocalOf<WindowSizeClass> {
+    error("No window size class composition local provided.")
+}
 
 @Composable
 fun OrbitTheme(
