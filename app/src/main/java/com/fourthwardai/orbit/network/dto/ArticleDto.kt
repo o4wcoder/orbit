@@ -8,9 +8,10 @@ data class ArticleDto(
     val createdTime: String,
     val title: String,
     val url: String,
-    val author: String,
+    val author: String? = null,
     val readTime: Int? = null,
     val heroImageUrl: String? = null,
+    val teaser: String? = null,
     val source: String,
     val ingestedAt: String,
 )

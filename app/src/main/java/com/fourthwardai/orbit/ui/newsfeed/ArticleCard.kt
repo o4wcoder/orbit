@@ -90,6 +90,7 @@ internal fun getArticlePreviewData() =
         readTimeMinutes = 5,
         heroImageUrl = "https://example.com/image.jpg",
         source = "Example Blog",
+        teaser = "This is a really cool article about Kotlin in Android Development",
         createdTime = "2023-07-10T12:00:00Z",
         ingestedAt = "2023-07-10T12:00:00Z",
 
