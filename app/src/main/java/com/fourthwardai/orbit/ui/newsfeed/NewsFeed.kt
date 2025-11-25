@@ -77,10 +77,11 @@ fun NewsFeed(modifier: Modifier = Modifier) {
         },
         modifier = modifier.fillMaxSize(),
     ) { innerPadding ->
-        NewsFeedContent(uiState = uiState, modifier = Modifier.padding(innerPadding), onRefresh = { viewModel.refreshArticles() })
+        NewsFeedContent(uiModel = uiState, modifier = Modifier.padding(innerPadding), onRefresh = { viewModel.refreshArticles() })
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun NewsFeedContent(
     uiModel: NewsFeedUiModel,
@@ -89,7 +90,11 @@ fun NewsFeedContent(
 ) {
     BoxWithConstraints(modifier = modifier) {
         val context = LocalContext.current
+        val windowSizeClass = LocalWindowClassSize.current
+        val widthSizeClass = windowSizeClass.widthSizeClass
+        val pullState = rememberPullToRefreshState()
 
+        // Taking the gradient out for now. Doesn't quite look right.
         val heightPx = with(LocalDensity.current) { maxHeight.toPx() }
         val gradient = Brush.verticalGradient(
             colors = listOf(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.primary),
@@ -97,23 +102,15 @@ fun NewsFeedContent(
             endY = heightPx,
         )
 
-        val windowSizeClass = LocalWindowClassSize.current
-        val widthSizeClass = windowSizeClass.widthSizeClass
-
-        // PullRefresh state: treat the Loading UI state as the refreshing flag.
-        val isRefreshing = uiModel.isRefreshing
-        // rememberPullToRefreshState in this material3 version takes no arguments.
-        val pullState = rememberPullToRefreshState()
-
         PullToRefreshBox(
             state = pullState,
-            isRefreshing = isRefreshing,
+            isRefreshing = uiModel.isRefreshing,
             onRefresh = onRefresh,
-            modifier = Modifier.fillMaxSize().background(brush = gradient),
+            modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colorScheme.background),
             indicator = {
                 Indicator(
                     modifier = Modifier.align(Alignment.TopCenter),
-                    isRefreshing = isRefreshing,
+                    isRefreshing = uiModel.isRefreshing,
                     state = pullState,
                 )
             },

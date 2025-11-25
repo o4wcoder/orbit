@@ -48,7 +48,7 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
 
             )
 
-            Column(modifier = Modifier.padding(horizontal = 8.dp)) {
+            Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 VerticalSpacer(16.dp)
                 Text(
                     text = article.title,
@@ -58,17 +58,13 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
 
                 VerticalSpacer(8.dp)
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    article.author?.let {
-                        Text(text = article.author, style = MaterialTheme.typography.labelMedium)
-                        HorizontalSpacer(16.dp)
-                    }
                     Box(
                         modifier = Modifier
                             .background(
-                                color = MaterialTheme.colorScheme.tertiary,
+                                color = MaterialTheme.colorScheme.primary,
                                 shape = MaterialTheme.shapes.small,
                             )
-                            .padding(vertical = 2.dp, horizontal = 6.dp),
+                            .padding(vertical = 4.dp, horizontal = 8.dp),
                     ) {
                         Text(
                             text = article.source,
@@ -76,6 +72,11 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onTertiary,
                         )
+                    }
+
+                    article.author?.let {
+                        HorizontalSpacer(16.dp)
+                        Text(text = article.author, style = MaterialTheme.typography.labelMedium)
                     }
                 }
 
@@ -86,7 +87,7 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 }
-                VerticalSpacer(8.dp)
+                VerticalSpacer(16.dp)
             }
         }
     }
@@ -97,10 +98,14 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
 @Composable
 private fun ArticleCardPreview() {
     OrbitTheme {
-        Box(modifier = Modifier.padding(16.dp)) {
-            ArticleCard(
-                article = getArticlePreviewData("1"),
-            )
+        CompositionLocalProvider(
+            LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
+        ) {
+            Box(modifier = Modifier.padding(16.dp)) {
+                ArticleCard(
+                    article = getArticlePreviewData("1"),
+                )
+            }
         }
     }
 }
