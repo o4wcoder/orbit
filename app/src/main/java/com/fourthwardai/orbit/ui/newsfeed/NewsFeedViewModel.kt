@@ -38,7 +38,7 @@ class NewsFeedViewModel @Inject constructor(
                 if (dataState.isLoading) {
                     NewsFeedUiModel.Loading
                 } else {
-                    NewsFeedUiModel.Content(articles = dataState.articles)
+                    NewsFeedUiModel.Content(articles = dataState.articles, isRefreshing = dataState.isRefreshing)
                 }
             }
             .catch {
@@ -53,21 +53,32 @@ class NewsFeedViewModel @Inject constructor(
             )
 
     init {
-        fetchArticles()
+        loadArticles()
     }
 
-    private fun fetchArticles() {
+    private fun loadArticles() {
         viewModelScope.launch(ioDispatcher) {
             showLoadingSpinner()
-            val articlesResult = articleService.fetchArticles()
-            articlesResult.onSuccess { articles ->
-                _dataState.update { it.copy(articles = articles) }
-            }
-            articlesResult.onFailure { error ->
-                Timber.e("Failed to fetch articles. Error = ${error.message}")
-            }
-
+            fetchArticles()
             hideLoadingSpinner()
+        }
+    }
+
+    fun refreshArticles() {
+        viewModelScope.launch(ioDispatcher) {
+            _dataState.update { it.copy(isRefreshing = true) }
+            fetchArticles()
+            _dataState.update { it.copy(isRefreshing = false) }
+        }
+    }
+
+    private suspend fun fetchArticles() {
+        val articlesResult = articleService.fetchArticles()
+        articlesResult.onSuccess { articles ->
+            _dataState.update { it.copy(articles = articles) }
+        }
+        articlesResult.onFailure { error ->
+            Timber.e("Failed to fetch articles. Error = ${error.message}")
         }
     }
 

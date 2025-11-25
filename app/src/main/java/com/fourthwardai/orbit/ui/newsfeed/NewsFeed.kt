@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
+
 package com.fourthwardai.orbit.ui.newsfeed
 
 import android.content.Context
@@ -6,7 +8,6 @@ import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
@@ -22,12 +23,16 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
@@ -72,12 +77,16 @@ fun NewsFeed(modifier: Modifier = Modifier) {
         },
         modifier = modifier.fillMaxSize(),
     ) { innerPadding ->
-        NewsFeedContent(uiState = uiState, modifier = Modifier.padding(innerPadding))
+        NewsFeedContent(uiState = uiState, modifier = Modifier.padding(innerPadding), onRefresh = { viewModel.refreshArticles() })
     }
 }
 
 @Composable
-fun NewsFeedContent(uiState: NewsFeedUiModel, modifier: Modifier = Modifier) {
+fun NewsFeedContent(
+    uiModel: NewsFeedUiModel,
+    modifier: Modifier = Modifier,
+    onRefresh: () -> Unit = {},
+) {
     BoxWithConstraints(modifier = modifier) {
         val context = LocalContext.current
 
@@ -88,12 +97,28 @@ fun NewsFeedContent(uiState: NewsFeedUiModel, modifier: Modifier = Modifier) {
             endY = heightPx,
         )
 
-        // Use the provided LocalWindowClassSize to pick layout based on width size class
         val windowSizeClass = LocalWindowClassSize.current
         val widthSizeClass = windowSizeClass.widthSizeClass
 
-        Box(modifier = Modifier.fillMaxSize().background(brush = gradient)) {
-            when (val state = uiState) {
+        // PullRefresh state: treat the Loading UI state as the refreshing flag.
+        val isRefreshing = uiModel.isRefreshing
+        // rememberPullToRefreshState in this material3 version takes no arguments.
+        val pullState = rememberPullToRefreshState()
+
+        PullToRefreshBox(
+            state = pullState,
+            isRefreshing = isRefreshing,
+            onRefresh = onRefresh,
+            modifier = Modifier.fillMaxSize().background(brush = gradient),
+            indicator = {
+                Indicator(
+                    modifier = Modifier.align(Alignment.TopCenter),
+                    isRefreshing = isRefreshing,
+                    state = pullState,
+                )
+            },
+        ) {
+            when (val state = uiModel) {
                 is NewsFeedUiModel.Loading -> {
                     LoadingSpinner()
                 }
@@ -178,9 +203,10 @@ fun openMediumOrBrowser(context: Context, url: String) {
 fun NewsFeedPreview() {
     OrbitTheme {
         NewsFeedContent(
-            uiState = NewsFeedUiModel.Content(
+            uiModel = NewsFeedUiModel.Content(
                 articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2")),
             ),
+            onRefresh = {},
         )
     }
 }
@@ -194,9 +220,10 @@ fun NewsFeedTabletPreview() {
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
             NewsFeedContent(
-                uiState = NewsFeedUiModel.Content(
+                uiModel = NewsFeedUiModel.Content(
                     articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2"), getArticlePreviewData("3")),
                 ),
+                onRefresh = {},
             )
         }
     }
