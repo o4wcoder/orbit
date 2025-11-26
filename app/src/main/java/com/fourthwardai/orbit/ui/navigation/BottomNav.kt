@@ -18,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -82,7 +83,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     Text(
                         text = stringResource(R.string.trends_tab_placeholder),
                         color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(16.dp).align(Alignment.Center),
                     )
                 }
             }
@@ -92,7 +93,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     Text(
                         text = stringResource(R.string.settings_tab_placeholder),
                         color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(16.dp).align(Alignment.Center),
                     )
                 }
             }
