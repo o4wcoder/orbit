@@ -17,12 +17,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.PullToRefreshDefaults.Indicator
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
@@ -37,22 +33,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.LoadingSpinner
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
-
-/**
- * Full-screen Dashboard composable that hosts a Scaffold with an AppBar showing the app title.
- */
 
 private const val MEDIUM_PACKAGE = "com.medium.reader"
 
@@ -61,24 +51,9 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 fun NewsFeed(modifier: Modifier = Modifier) {
     val viewModel: NewsFeedViewModel = hiltViewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    Scaffold(
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-            )
-        },
-        modifier = modifier.fillMaxSize(),
-    ) { innerPadding ->
-        NewsFeedContent(uiModel = uiState, modifier = Modifier.padding(innerPadding), onRefresh = { viewModel.refreshArticles() })
-    }
+
+    // No Scaffold here — the top app bar is owned by the app-level Scaffold in OrbitAppNavHost
+    NewsFeedContent(uiModel = uiState, modifier = modifier, onRefresh = { viewModel.refreshArticles() })
 }
 
 @OptIn(ExperimentalFoundationApi::class)

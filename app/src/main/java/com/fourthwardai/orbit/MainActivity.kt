@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.CompositionLocalProvider
-import com.fourthwardai.orbit.ui.newsfeed.NewsFeed
+import com.fourthwardai.orbit.ui.navigation.OrbitAppNavHost
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 import dagger.hilt.android.AndroidEntryPoint
@@ -24,7 +24,7 @@ class MainActivity : ComponentActivity() {
                 CompositionLocalProvider(
                     LocalWindowClassSize provides windowSizeClass,
                 ) {
-                    NewsFeed()
+                    OrbitAppNavHost()
                 }
             }
         }

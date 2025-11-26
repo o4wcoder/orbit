@@ -1,0 +1,141 @@
+package com.fourthwardai.orbit.ui.navigation
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
+import com.fourthwardai.orbit.R
+import com.fourthwardai.orbit.ui.newsfeed.NewsFeed
+import com.fourthwardai.orbit.ui.theme.OrbitTheme
+
+sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
+    object News : Screen("news", R.string.news_tab, Icons.Filled.Article)
+    object Trends : Screen("trends", R.string.trends_tab, Icons.Filled.TrendingUp)
+    object Settings : Screen("settings", R.string.settings_tab, Icons.Filled.Settings)
+}
+
+private val bottomNavItems = listOf(
+    Screen.News,
+    Screen.Trends,
+    Screen.Settings,
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OrbitAppNavHost(modifier: Modifier = Modifier) {
+    val navController = rememberNavController()
+    Scaffold(
+        modifier = modifier,
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = stringResource(R.string.app_name),
+                        color = MaterialTheme.colorScheme.onSurface,
+                    )
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                ),
+            )
+        },
+        bottomBar = {
+            BottomBar(navController = navController)
+        },
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = Screen.News.route,
+            modifier = Modifier.padding(innerPadding),
+        ) {
+            composable(Screen.News.route) {
+                NewsFeed(modifier = Modifier.fillMaxSize())
+            }
+            composable(Screen.Trends.route) {
+                // Empty placeholder for Trends
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = stringResource(R.string.trends_tab_placeholder),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
+            composable(Screen.Settings.route) {
+                // Empty placeholder for Settings
+                Box(modifier = Modifier.fillMaxSize()) {
+                    Text(
+                        text = stringResource(R.string.settings_tab_placeholder),
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.padding(16.dp),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BottomBar(navController: NavHostController) {
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        bottomNavItems.forEach { screen ->
+            NavigationBarItem(
+                selected = currentRoute == screen.route,
+                onClick = {
+                    navController.navigate(screen.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                },
+                icon = {
+                    Icon(
+                        imageVector = screen.icon,
+                        contentDescription = stringResource(screen.labelRes),
+                    )
+                },
+                label = { Text(text = stringResource(screen.labelRes)) },
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PreviewBottomNav() {
+    OrbitTheme {
+        BottomBar(navController = rememberNavController())
+    }
+}
