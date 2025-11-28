@@ -13,6 +13,7 @@ data class Article(
     val heroImageUrl: String?,
     val teaser: String?,
     val source: String,
+    val sourceAvatarUrl: String?,
     val createdTime: String,
     val ingestedAt: String,
     val categories: List<Category>,
@@ -28,6 +29,7 @@ fun ArticleDto.toDomain(): Article =
         heroImageUrl = heroImageUrl,
         teaser = teaser,
         source = source,
+        sourceAvatarUrl = sourceAvatarUrl,
         createdTime = createdTime,
         ingestedAt = ingestedAt,
         categories = categories.map { category ->

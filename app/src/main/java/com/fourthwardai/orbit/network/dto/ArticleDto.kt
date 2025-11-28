@@ -13,6 +13,7 @@ data class ArticleDto(
     val heroImageUrl: String? = null,
     val teaser: String? = null,
     val source: String,
+    val sourceAvatarUrl: String? = null,
     val ingestedAt: String,
     val categories: List<CategoryDto>,
 )

@@ -1,14 +1,19 @@
 package com.fourthwardai.orbit.ui.newsfeed
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ElevatedCard
@@ -19,18 +24,27 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
@@ -38,9 +52,14 @@ import com.fourthwardai.orbit.extensions.HorizontalSpacer
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import com.fourthwardai.orbit.ui.util.harmonizeColor
+import com.fourthwardai.orbit.ui.util.sourceAccentColorFromName
+import java.util.Locale
 
 @Composable
 fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
+    val configuration = LocalConfiguration.current
+    val locale: Locale = configuration.locales.get(0)
     val windowSizeClass = LocalWindowClassSize.current
     val widthSizeClass = windowSizeClass.widthSizeClass
 
@@ -57,35 +76,34 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 VerticalSpacer(16.dp)
+
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    val capitalizedSource = article.source.replaceFirstChar {
+                        if (it.isLowerCase()) it.titlecase(locale) else it.toString()
+                    }
+                    SourceAvatar(
+                        imageUrl = article.sourceAvatarUrl,
+                        sourceName = capitalizedSource,
+
+                    )
+                    HorizontalSpacer(8.dp)
+                    Text(
+                        text = capitalizedSource,
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+
+//                    article.author?.let {
+//                        HorizontalSpacer(16.dp)
+//                        Text(text = article.author, style = MaterialTheme.typography.labelMedium)
+//                    }
+                }
+                VerticalSpacer(8.dp)
+
                 Text(
                     text = article.title,
                     fontWeight = FontWeight.Medium,
                     style = MaterialTheme.typography.headlineSmall,
                 )
-
-                VerticalSpacer(8.dp)
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .background(
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = MaterialTheme.shapes.small,
-                            )
-                            .padding(vertical = 4.dp, horizontal = 8.dp),
-                    ) {
-                        Text(
-                            text = article.source,
-
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onTertiary,
-                        )
-                    }
-
-                    article.author?.let {
-                        HorizontalSpacer(16.dp)
-                        Text(text = article.author, style = MaterialTheme.typography.labelMedium)
-                    }
-                }
 
                 if (widthSizeClass != WindowWidthSizeClass.Compact && article.teaser != null) {
                     VerticalSpacer(8.dp)
@@ -100,8 +118,7 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 4.dp),
+                            .fillMaxWidth(),
                     ) {
                         items(article.categories) { category ->
                             // Determine chip background based on current theme (use surface luminance)
@@ -127,6 +144,67 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                 }
 
                 VerticalSpacer(8.dp)
+            }
+        }
+    }
+}
+
+@Composable
+fun SourceAvatar(
+    imageUrl: String?,
+    sourceName: String,
+    modifier: Modifier = Modifier,
+    size: Dp = 28.dp,
+) {
+    val firstLetterOfSource = sourceName.first().toString()
+
+    val colors = MaterialTheme.colorScheme
+    val isDark = isSystemInDarkTheme()
+
+    // Base neutral ring, slightly stronger in dark mode
+    val ringColor = colors.onSurface.copy(alpha = if (isDark) 0.24f else 0.12f)
+
+    // Source-specific accent, harmonized with surface
+    val harmonizedBackground = remember(sourceName, colors.surface, isDark) {
+        val accent = sourceAccentColorFromName(sourceName, isDark)
+        harmonizeColor(accent, colors.surface, amount = if (isDark) 0.55f else 0.65f)
+    }
+
+    var loadFailed by remember { mutableStateOf(false) }
+
+    Box(
+        modifier = modifier
+            .size(size)
+            .clip(CircleShape)
+            .border(1.dp, ringColor, CircleShape)
+            .background(harmonizedBackground),
+    ) {
+        if (!imageUrl.isNullOrBlank() && !loadFailed) {
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(imageUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
+                onError = {
+                    loadFailed = true
+                },
+            )
+        }
+
+        if (loadFailed || imageUrl.isNullOrBlank()) {
+            Box(
+                modifier = Modifier.fillMaxSize(),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = firstLetterOfSource,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = colors.onSurface.copy(alpha = 0.9f),
+                )
             }
         }
     }
@@ -176,6 +254,7 @@ internal fun getArticlePreviewData(id: String) =
         readTimeMinutes = 5,
         heroImageUrl = "https://example.com/image.jpg",
         source = "Example Blog",
+        sourceAvatarUrl = null,
         teaser = "This is a really cool article about Kotlin in Android Development",
         createdTime = "2023-07-10T12:00:00Z",
         ingestedAt = "2023-07-10T12:00:00Z",
