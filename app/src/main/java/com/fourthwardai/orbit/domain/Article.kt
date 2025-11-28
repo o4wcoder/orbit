@@ -1,5 +1,7 @@
 package com.fourthwardai.orbit.domain
 
+import androidx.compose.ui.graphics.Color
+import androidx.core.graphics.toColorInt
 import com.fourthwardai.orbit.network.dto.ArticleDto
 
 data class Article(
@@ -13,6 +15,7 @@ data class Article(
     val source: String,
     val createdTime: String,
     val ingestedAt: String,
+    val categories: List<Category>,
 )
 
 fun ArticleDto.toDomain(): Article =
@@ -27,4 +30,21 @@ fun ArticleDto.toDomain(): Article =
         source = source,
         createdTime = createdTime,
         ingestedAt = ingestedAt,
+        categories = categories.map { category ->
+            Category(
+                id = category.id,
+                name = category.name,
+                colorLight = category.colorLight.toComposeColor(),
+                colorDark = category.colorDark.toComposeColor(),
+            )
+        },
     )
+
+fun String.toComposeColor(): Color {
+    return try {
+        val formattedHexString = if (this.startsWith("#")) this else "#$this"
+        Color(formattedHexString.toColorInt())
+    } catch (e: IllegalArgumentException) {
+        Color.Gray
+    }
+}

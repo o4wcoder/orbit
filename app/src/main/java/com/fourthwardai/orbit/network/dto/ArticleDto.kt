@@ -14,4 +14,13 @@ data class ArticleDto(
     val teaser: String? = null,
     val source: String,
     val ingestedAt: String,
+    val categories: List<CategoryDto>,
+)
+
+@Serializable
+data class CategoryDto(
+    val id: String,
+    val name: String,
+    val colorLight: String,
+    val colorDark: String,
 )
