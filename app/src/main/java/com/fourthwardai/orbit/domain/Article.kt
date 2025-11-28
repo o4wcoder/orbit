@@ -41,6 +41,10 @@ fun ArticleDto.toDomain(): Article =
     )
 
 fun String.toComposeColor(): Color {
-    val formattedHexString = if (this.startsWith("#")) this else "#$this"
-    return Color(formattedHexString.toColorInt())
+    return try {
+        val formattedHexString = if (this.startsWith("#")) this else "#$this"
+        Color(formattedHexString.toColorInt())
+    } catch (e: IllegalArgumentException) {
+        Color.Gray
+    }
 }

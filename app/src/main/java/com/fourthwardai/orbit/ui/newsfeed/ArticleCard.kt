@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ElevatedCard
@@ -22,7 +21,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
@@ -122,10 +120,7 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                                 },
                                 colors = AssistChipDefaults.assistChipColors(
                                     containerColor = chipBg,
-                                    labelColor = contentColor,
                                 ),
-                                modifier = Modifier
-                                    .clip(RoundedCornerShape(12.dp)),
                             )
                         }
                     }
