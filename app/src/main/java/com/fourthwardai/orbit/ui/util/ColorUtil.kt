@@ -25,8 +25,8 @@ fun sourceAccentColorFromName(name: String, dark: Boolean): Color {
  * Harmonize an accent with a base (usually the theme surface) by blending them.
  * amount = 0 → base; amount = 1 → accent.
  */
-fun harmonizeColor(accent: Color, base: Color, amount: Float): Color {
-    val clamped = amount.coerceIn(0f, 1f)
+fun harmonizeColor(accent: Color, base: Color, blendAmount: Float): Color {
+    val clamped = blendAmount.coerceIn(0f, 1f)
     return lerp(base, accent, clamped)
 }
 
