@@ -156,7 +156,7 @@ fun SourceAvatar(
     modifier: Modifier = Modifier,
     size: Dp = 28.dp,
 ) {
-    val firstLetterOfSource = sourceName.first().toString()
+    val firstLetterOfSource = (sourceName.firstOrNull() ?: '?').toString()
 
     val colors = MaterialTheme.colorScheme
     val isDark = isSystemInDarkTheme()
