@@ -59,7 +59,7 @@ import java.util.Locale
 @Composable
 fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
     val configuration = LocalConfiguration.current
-    val locale: Locale = configuration.locales.get(0)
+    val locale: Locale = if (configuration.locales.isEmpty) Locale.getDefault() else configuration.locales[0]
     val windowSizeClass = LocalWindowClassSize.current
     val widthSizeClass = windowSizeClass.widthSizeClass
 
