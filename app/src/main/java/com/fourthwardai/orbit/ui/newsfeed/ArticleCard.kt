@@ -170,7 +170,7 @@ fun SourceAvatar(
         harmonizeColor(accent, colors.surface, amount = if (isDark) 0.55f else 0.65f)
     }
 
-    var loadFailed by remember { mutableStateOf(false) }
+    var loadFailed by remember(imageUrl) { mutableStateOf(false) }
 
     Box(
         modifier = modifier
