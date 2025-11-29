@@ -192,9 +192,7 @@ fun SourceAvatar(
                     loadFailed = true
                 },
             )
-        }
-
-        if (loadFailed || imageUrl.isNullOrBlank()) {
+        } else {
             Box(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
