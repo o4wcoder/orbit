@@ -185,7 +185,7 @@ fun SourceAvatar(
                     .data(imageUrl)
                     .crossfade(true)
                     .build(),
-                contentDescription = null,
+                contentDescription = "${sourceName} logo",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
                 onError = {
