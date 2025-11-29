@@ -10,7 +10,7 @@ import kotlin.math.abs
  */
 fun sourceAccentColorFromName(name: String, dark: Boolean): Color {
     if (name.isBlank()) {
-        return if (dark) Color(0xFF90CAF9) else Color(0xFF1E88E5) // blue-ish default
+        return if (dark) Color(0xFF90CAF9) else Color(0xFF1E88E5) // neutral blue default for blank source names
     }
 
     val hash = name.fold(0) { acc, c -> acc * 31 + c.code }
