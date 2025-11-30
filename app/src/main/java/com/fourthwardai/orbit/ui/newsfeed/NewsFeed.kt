@@ -37,8 +37,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.LoadingSpinner
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
@@ -48,12 +46,13 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun NewsFeed(modifier: Modifier = Modifier) {
-    val viewModel: NewsFeedViewModel = hiltViewModel()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
+fun NewsFeed(
+    uiModel: NewsFeedUiModel,
+    onRefresh: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     // No Scaffold here — the top app bar is owned by the app-level Scaffold in OrbitAppNavHost
-    NewsFeedContent(uiModel = uiState, modifier = modifier, onRefresh = { viewModel.refreshArticles() })
+    NewsFeedContent(uiModel = uiModel, modifier = modifier, onRefresh = onRefresh)
 }
 
 @OptIn(ExperimentalFoundationApi::class)

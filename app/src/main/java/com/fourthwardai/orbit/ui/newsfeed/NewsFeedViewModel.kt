@@ -3,6 +3,7 @@ package com.fourthwardai.orbit.ui.newsfeed
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fourthwardai.orbit.di.IODispatcher
+import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.onFailure
 import com.fourthwardai.orbit.network.onSuccess
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
@@ -13,6 +14,7 @@ import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
@@ -27,6 +29,9 @@ class NewsFeedViewModel @Inject constructor(
     private val articleService: ArticleService,
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
+
+    private val _categories = MutableStateFlow(emptyList<Category>())
+    val categories = _categories.asStateFlow()
 
     private val _dataState = MutableStateFlow(NewsFeedDataState())
     private val dataState
@@ -53,9 +58,21 @@ class NewsFeedViewModel @Inject constructor(
             )
 
     init {
+        loadCategories()
         loadArticles()
     }
 
+    private fun loadCategories() {
+        viewModelScope.launch(ioDispatcher) {
+            val categoriesResult = articleService.fetchArticleCategories()
+            categoriesResult.onSuccess { categories ->
+                _categories.update { categories }
+            }
+            categoriesResult.onFailure { error ->
+                Timber.e("Failed to fetch categories. Error = ${error.message}")
+            }
+        }
+    }
     private fun loadArticles() {
         viewModelScope.launch(ioDispatcher) {
             showLoadingSpinner()

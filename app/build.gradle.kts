@@ -17,6 +17,8 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.spotless)
+    // Kotlin Parcelize for @Parcelize support
+    id("kotlin-parcelize")
     id("kotlin-kapt")
 }
 

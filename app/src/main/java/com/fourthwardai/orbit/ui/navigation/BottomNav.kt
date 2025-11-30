@@ -20,12 +20,15 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -33,7 +36,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fourthwardai.orbit.R
+import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterDialog
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeed
+import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
@@ -68,7 +73,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 // Show a filter icon on the right only when on the News screen
                 actions = {
                     if (currentRoute == Screen.News.route) {
-                        IconButton(onClick = { /* TODO: open filter UI */ }) {
+                        IconButton(onClick = { navController.navigate("filters") }) {
                             Icon(
                                 imageVector = Icons.Filled.FilterList,
                                 contentDescription = "Filter",
@@ -91,7 +96,13 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(Screen.News.route) {
-                NewsFeed(modifier = Modifier.fillMaxSize())
+                val viewModel: NewsFeedViewModel = hiltViewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                NewsFeed(
+                    uiModel = uiState,
+                    onRefresh = viewModel::refreshArticles,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
             composable(Screen.Trends.route) {
                 // Empty placeholder for Trends
@@ -112,6 +123,24 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         modifier = Modifier.padding(16.dp).align(Alignment.Center),
                     )
                 }
+            }
+            // Dialog destination for filters. Uses CategoryFilterDialog which shows a Dialog internally.
+            composable("filters") { backStackEntry ->
+
+                val parentEntry = remember(backStackEntry) {
+                    navController.getBackStackEntry(Screen.News.route)
+                }
+                val viewModel: NewsFeedViewModel = hiltViewModel(parentEntry)
+
+                val categories by viewModel.categories.collectAsStateWithLifecycle()
+                CategoryFilterDialog(
+                    categories = categories,
+                    onApply = { _groups, _categoryIds ->
+                        // TODO: wire selected filters to ViewModel
+                        navController.popBackStack()
+                    },
+                    onDismiss = { navController.popBackStack() },
+                )
             }
         }
     }

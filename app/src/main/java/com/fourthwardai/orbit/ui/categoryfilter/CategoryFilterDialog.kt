@@ -34,21 +34,24 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import com.fourthwardai.orbit.extensions.HorizontalSpacer
+import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import com.fourthwardai.orbit.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryFilterDialog(
-    categories: List<CategoryFilterItem>,
+    categories: List<Category>,
     // Initial selections from ViewModel / caller
     initialSelectedGroups: Set<String> = emptySet(),
     initialSelectedCategoryIds: Set<String> = emptySet(),
@@ -86,12 +89,12 @@ fun CategoryFilterDialog(
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text("Filters") },
+                        title = { Text(stringResource(R.string.filters_title)) },
                         navigationIcon = {
                             IconButton(onClick = onDismiss) {
                                 Icon(
                                     imageVector = Icons.Default.Close,
-                                    contentDescription = "Close filters",
+                                    contentDescription = stringResource(R.string.filters_close_description),
                                 )
                             }
                         },
@@ -103,7 +106,7 @@ fun CategoryFilterDialog(
                                     selectedCategoryIds = emptySet()
                                 },
                             ) {
-                                Text("Clear all")
+                                Text(stringResource(R.string.filters_clear_all))
                             }
                         },
                     )
@@ -113,23 +116,13 @@ fun CategoryFilterDialog(
                         tonalElevation = 3.dp,
                     ) {
                         Spacer(modifier = Modifier.weight(1f))
-                        TextButton(
-                            onClick = {
-                                selectedGroups = emptySet()
-                                selectedCategoryIds = emptySet()
-                            },
-                            enabled = hasAnySelection,
-                        ) {
-                            Text("Reset")
-                        }
-                        HorizontalSpacer(8.dp)
                         Button(
                             onClick = {
                                 onApply(selectedGroups, selectedCategoryIds)
                                 onDismiss()
                             },
                         ) {
-                            Text("Apply filters")
+                            Text(stringResource(R.string.filters_apply))
                         }
                     }
                 },
@@ -166,7 +159,7 @@ fun CategoryFilterDialog(
 private fun FilterContent(
     modifier: Modifier,
     allGroups: List<String>,
-    visibleCategories: List<CategoryFilterItem>,
+    visibleCategories: List<Category>,
     selectedGroups: Set<String>,
     selectedCategoryIds: Set<String>,
     onGroupToggled: (String) -> Unit,
@@ -180,7 +173,7 @@ private fun FilterContent(
 
         // GROUP SECTION
         Text(
-            text = "Group",
+            text = stringResource(R.string.filters_group_title),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
         )
 
@@ -202,7 +195,7 @@ private fun FilterContent(
         Spacer(modifier = Modifier.height(24.dp))
 
         Text(
-            text = "Category",
+            text = stringResource(R.string.filters_category_title),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
         )
 
@@ -216,7 +209,7 @@ private fun FilterContent(
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
-                    text = "No categories in the selected groups",
+                    text = stringResource(R.string.filters_no_categories),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -243,7 +236,7 @@ private fun FilterContent(
 
 @Composable
 private fun CategoryRow(
-    category: CategoryFilterItem,
+    category: Category,
     selected: Boolean,
     onToggle: () -> Unit,
 ) {
@@ -273,12 +266,12 @@ private fun CategoryRow(
 @Composable
 fun CategoryFilterDialogPreview() {
     val sample = listOf(
-        CategoryFilterItem("1", "Cloud & DevOps", "Tech"),
-        CategoryFilterItem("2", "Java", "Tech"),
-        CategoryFilterItem("3", "Machine Learning", "AI"),
-        CategoryFilterItem("4", "Web Development", "Tech"),
-        CategoryFilterItem("5", "Productivity", "Life"),
-        CategoryFilterItem("6", "Finance & Markets", "Money"),
+        Category("1", "Cloud & DevOps", "Tech", Color.Blue, Color.Red),
+        Category("2", "Java", "Tech", Color.Blue, Color.Red),
+        Category("3", "Machine Learning", "AI", Color.Blue, Color.Red),
+        Category("4", "Web Development", "Tech", Color.Blue, Color.Red),
+        Category("5", "Productivity", "Life", Color.Blue, Color.Red),
+        Category("6", "Finance & Markets", "Money", Color.Blue, Color.Red),
     )
 
     OrbitTheme {
