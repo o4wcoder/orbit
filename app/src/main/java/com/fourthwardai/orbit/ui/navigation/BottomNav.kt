@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -50,6 +52,9 @@ private val bottomNavItems = listOf(
 @Composable
 fun OrbitAppNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+    // Observe the current back stack entry to determine which screen is active
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -59,6 +64,17 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         text = stringResource(R.string.app_name),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
+                },
+                // Show a filter icon on the right only when on the News screen
+                actions = {
+                    if (currentRoute == Screen.News.route) {
+                        IconButton(onClick = { /* TODO: open filter UI */ }) {
+                            Icon(
+                                imageVector = Icons.Filled.FilterList,
+                                contentDescription = "Filter",
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,

@@ -25,5 +25,5 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideArticleService(client: HttpClient): ArticleService = ArticleService(client = client, feedUrl = BuildConfig.ARTICLES_ENDPOINT)
+    fun provideArticleService(client: HttpClient): ArticleService = ArticleService(client = client, orbitBaseUrl = BuildConfig.ARTICLES_ENDPOINT)
 }
