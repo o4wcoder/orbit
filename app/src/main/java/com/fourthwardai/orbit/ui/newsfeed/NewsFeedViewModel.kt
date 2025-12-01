@@ -4,9 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fourthwardai.orbit.di.IODispatcher
 import com.fourthwardai.orbit.domain.Category
+import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.onFailure
 import com.fourthwardai.orbit.network.onSuccess
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
+import com.fourthwardai.repository.ArticleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.currentCoroutineContext
@@ -16,6 +18,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -27,11 +30,15 @@ import javax.inject.Inject
 @HiltViewModel
 class NewsFeedViewModel @Inject constructor(
     private val articleService: ArticleService,
+    private val articleRepository: ArticleRepository,
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _categories = MutableStateFlow(emptyList<Category>())
     val categories = _categories.asStateFlow()
+
+    private val _filter = MutableStateFlow(FeedFilter())
+    val filter = _filter.asStateFlow()
 
     private val _dataState = MutableStateFlow(NewsFeedDataState())
     private val dataState
@@ -43,7 +50,7 @@ class NewsFeedViewModel @Inject constructor(
                 if (dataState.isLoading) {
                     NewsFeedUiModel.Loading
                 } else {
-                    NewsFeedUiModel.Content(articles = dataState.articles, isRefreshing = dataState.isRefreshing)
+                    dataState.toContentUiModel()
                 }
             }
             .catch {
@@ -58,13 +65,60 @@ class NewsFeedViewModel @Inject constructor(
             )
 
     init {
+        observeArticles()
         loadCategories()
-        loadArticles()
+        refreshArticles()
+    }
+
+    private fun observeArticles() {
+        viewModelScope.launch(ioDispatcher) {
+            combine(
+                articleRepository.articles,
+                _filter,
+            ) { articles, filter ->
+                articles.filter { article ->
+                    val matchesGroup =
+                        filter.selectedGroups.isEmpty() ||
+                            article.categories.any { category ->
+                                category.group in filter.selectedGroups
+                            }
+
+                    val matchesCategory =
+                        filter.selectedCategoryIds.isEmpty() ||
+                            article.categories.any { category ->
+                                category.id in filter.selectedCategoryIds
+                            }
+
+                    matchesGroup && matchesCategory
+                }
+            }.collect { filteredArticles ->
+                Timber.d("CGH: number of filtered articles = ${filteredArticles.size}")
+                _dataState.update { it.copy(articles = filteredArticles) }
+            }
+        }
+    }
+
+    fun onFiltersApplied(
+        selectedGroups: Set<String>,
+        selectedCategoryIds: Set<String>,
+    ) {
+        _filter.value = FeedFilter(
+            selectedGroups = selectedGroups,
+            selectedCategoryIds = selectedCategoryIds,
+        )
+    }
+
+    fun showFilterDialog() {
+        _dataState.update { it.copy(showFilterDialog = true) }
+    }
+
+    fun dismissFilterDialog() {
+        _dataState.update { it.copy(showFilterDialog = false) }
     }
 
     private fun loadCategories() {
         viewModelScope.launch(ioDispatcher) {
-            val categoriesResult = articleService.fetchArticleCategories()
+            val categoriesResult = articleRepository.getCategories()
             categoriesResult.onSuccess { categories ->
                 _categories.update { categories }
             }
@@ -81,11 +135,29 @@ class NewsFeedViewModel @Inject constructor(
         }
     }
 
+//    fun refreshArticles() {
+//        viewModelScope.launch(ioDispatcher) {
+//            _dataState.update { it.copy(isRefreshing = true) }
+//            fetchArticles()
+//            _dataState.update { it.copy(isRefreshing = false) }
+//        }
+//    }
+
     fun refreshArticles() {
         viewModelScope.launch(ioDispatcher) {
+            // If it's the very first load, show the big spinner
+            if (dataState.articles.isEmpty()) {
+                showLoadingSpinner()
+            }
             _dataState.update { it.copy(isRefreshing = true) }
-            fetchArticles()
+
+            val result = articleRepository.refreshArticles()
+            result.onFailure { error ->
+                Timber.e("Failed to refresh articles. Error = ${error.message}")
+            }
+
             _dataState.update { it.copy(isRefreshing = false) }
+            hideLoadingSpinner()
         }
     }
 

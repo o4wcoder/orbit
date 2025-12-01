@@ -20,7 +20,9 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -36,7 +38,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fourthwardai.orbit.R
-import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterDialog
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeed
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
@@ -57,9 +58,11 @@ private val bottomNavItems = listOf(
 @Composable
 fun OrbitAppNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
-    // Observe the current back stack entry to determine which screen is active
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    var showFilters by remember { mutableStateOf(false) }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -70,10 +73,10 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         color = MaterialTheme.colorScheme.onSurface,
                     )
                 },
-                // Show a filter icon on the right only when on the News screen
+
                 actions = {
                     if (currentRoute == Screen.News.route) {
-                        IconButton(onClick = { navController.navigate("filters") }) {
+                        IconButton(onClick = { showFilters = true }) {
                             Icon(
                                 imageVector = Icons.Filled.FilterList,
                                 contentDescription = "Filter",
@@ -101,6 +104,14 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 NewsFeed(
                     uiModel = uiState,
                     onRefresh = viewModel::refreshArticles,
+                    showFilters = showFilters,
+                    filters = viewModel.filter.collectAsStateWithLifecycle().value,
+                    onDismissFilters = { showFilters = false },
+                    onApply = { groups, categoryIds ->
+                        viewModel.onFiltersApplied(groups, categoryIds)
+                        showFilters = false
+                    },
+                    categories = viewModel.categories.collectAsStateWithLifecycle().value,
                     modifier = Modifier.fillMaxSize(),
                 )
             }
@@ -123,24 +134,6 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         modifier = Modifier.padding(16.dp).align(Alignment.Center),
                     )
                 }
-            }
-            // Dialog destination for filters. Uses CategoryFilterDialog which shows a Dialog internally.
-            composable("filters") { backStackEntry ->
-
-                val parentEntry = remember(backStackEntry) {
-                    navController.getBackStackEntry(Screen.News.route)
-                }
-                val viewModel: NewsFeedViewModel = hiltViewModel(parentEntry)
-
-                val categories by viewModel.categories.collectAsStateWithLifecycle()
-                CategoryFilterDialog(
-                    categories = categories,
-                    onApply = { _groups, _categoryIds ->
-                        // TODO: wire selected filters to ViewModel
-                        navController.popBackStack()
-                    },
-                    onDismiss = { navController.popBackStack() },
-                )
             }
         }
     }
