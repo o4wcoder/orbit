@@ -71,7 +71,7 @@ fun NewsFeed(
             initialSelectedGroups = filters.selectedGroups,
             initialSelectedCategoryIds = filters.selectedCategoryIds,
             onApply = onApply,
-            onDismiss = { onDismissFilters() },
+            onDismiss = onDismissFilters,
         )
     }
 }
