@@ -70,9 +70,7 @@ fun NewsFeed(
             categories = categories,
             initialSelectedGroups = filters.selectedGroups,
             initialSelectedCategoryIds = filters.selectedCategoryIds,
-            onApply = { groups, categoryIds ->
-                onApply(groups, categoryIds)
-            },
+            onApply = onApply,
             onDismiss = { onDismissFilters() },
         )
     }
