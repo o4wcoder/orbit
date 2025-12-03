@@ -44,7 +44,6 @@ import com.fourthwardai.orbit.ui.LoadingSpinner
 import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterDialog
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
-import timber.log.Timber
 
 private const val MEDIUM_PACKAGE = "com.medium.reader"
 
@@ -123,7 +122,6 @@ private fun NewsFeedContent(
                 }
 
                 is NewsFeedUiModel.Content -> {
-                    Timber.d("CGH: NewsFeed with number of articles = ${state.articles.size}")
                     if (widthSizeClass == WindowWidthSizeClass.Compact) {
                         // Phone: single column list
                         LazyColumn(
@@ -162,7 +160,6 @@ private fun NewsFeedContent(
                                 key = { article -> article.id },
                             ) { article ->
 
-                                // give each grid item padding so there's visible spacing between cells
                                 ArticleCard(
                                     article,
                                     modifier = Modifier

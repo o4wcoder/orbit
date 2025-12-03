@@ -4,16 +4,13 @@ import com.fourthwardai.orbit.domain.Article
 
 sealed interface NewsFeedUiModel {
     val isRefreshing: Boolean
-    val showFilterDialog: Boolean
 
     data object Loading : NewsFeedUiModel {
         override val isRefreshing: Boolean = false
-        override val showFilterDialog: Boolean = false
     }
 
     data class Content(
         val articles: List<Article> = emptyList(),
         override val isRefreshing: Boolean = false,
-        override val showFilterDialog: Boolean = false,
     ) : NewsFeedUiModel
 }

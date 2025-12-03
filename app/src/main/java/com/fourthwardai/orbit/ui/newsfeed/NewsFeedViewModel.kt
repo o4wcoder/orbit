@@ -7,7 +7,6 @@ import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.onFailure
 import com.fourthwardai.orbit.network.onSuccess
-import com.fourthwardai.orbit.service.newsfeed.ArticleService
 import com.fourthwardai.repository.ArticleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -29,7 +28,6 @@ import javax.inject.Inject
 
 @HiltViewModel
 class NewsFeedViewModel @Inject constructor(
-    private val articleService: ArticleService,
     private val articleRepository: ArticleRepository,
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
@@ -92,7 +90,6 @@ class NewsFeedViewModel @Inject constructor(
                     matchesGroup && matchesCategory
                 }
             }.collect { filteredArticles ->
-                Timber.d("CGH: number of filtered articles = ${filteredArticles.size}")
                 _dataState.update { it.copy(articles = filteredArticles) }
             }
         }
@@ -108,14 +105,6 @@ class NewsFeedViewModel @Inject constructor(
         )
     }
 
-    fun showFilterDialog() {
-        _dataState.update { it.copy(showFilterDialog = true) }
-    }
-
-    fun dismissFilterDialog() {
-        _dataState.update { it.copy(showFilterDialog = false) }
-    }
-
     private fun loadCategories() {
         viewModelScope.launch(ioDispatcher) {
             val categoriesResult = articleRepository.getCategories()
@@ -127,21 +116,6 @@ class NewsFeedViewModel @Inject constructor(
             }
         }
     }
-    private fun loadArticles() {
-        viewModelScope.launch(ioDispatcher) {
-            showLoadingSpinner()
-            fetchArticles()
-            hideLoadingSpinner()
-        }
-    }
-
-//    fun refreshArticles() {
-//        viewModelScope.launch(ioDispatcher) {
-//            _dataState.update { it.copy(isRefreshing = true) }
-//            fetchArticles()
-//            _dataState.update { it.copy(isRefreshing = false) }
-//        }
-//    }
 
     fun refreshArticles() {
         viewModelScope.launch(ioDispatcher) {
@@ -158,16 +132,6 @@ class NewsFeedViewModel @Inject constructor(
 
             _dataState.update { it.copy(isRefreshing = false) }
             hideLoadingSpinner()
-        }
-    }
-
-    private suspend fun fetchArticles() {
-        val articlesResult = articleService.fetchArticles()
-        articlesResult.onSuccess { articles ->
-            _dataState.update { it.copy(articles = articles) }
-        }
-        articlesResult.onFailure { error ->
-            Timber.e("Failed to fetch articles. Error = ${error.message}")
         }
     }
 
