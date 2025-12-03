@@ -119,7 +119,6 @@ fun CategoryFilterDialog(
                         Button(
                             onClick = {
                                 onApply(selectedGroups, selectedCategoryIds)
-                                onDismiss()
                             },
                         ) {
                             Text(stringResource(R.string.filters_apply))
