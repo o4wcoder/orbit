@@ -11,7 +11,6 @@
     <string name="filters_close_description">Close filters</string>
     <string name="filters_clear_all">Clear all</string>
     <string name="filters_apply">Apply filters</string>
-    <string name="filters_reset">Reset</string>
     <string name="filters_group_title">Group</string>
     <string name="filters_category_title">Category</string>
     <string name="filters_no_categories">No categories in the selected groups</string>
