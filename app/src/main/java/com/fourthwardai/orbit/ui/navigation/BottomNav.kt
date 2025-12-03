@@ -79,7 +79,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         IconButton(onClick = { showFilters = true }) {
                             Icon(
                                 imageVector = Icons.Filled.FilterList,
-                                contentDescription = "Filter",
+                                contentDescription = stringResource(R.string.filters_button_description),
                             )
                         }
                     }
