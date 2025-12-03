@@ -36,6 +36,7 @@ fun ArticleDto.toDomain(): Article =
             Category(
                 id = category.id,
                 name = category.name,
+                group = category.group,
                 colorLight = category.colorLight.toComposeColor(),
                 colorDark = category.colorDark.toComposeColor(),
             )

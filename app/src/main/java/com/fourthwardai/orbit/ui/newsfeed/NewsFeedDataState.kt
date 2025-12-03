@@ -7,3 +7,8 @@ data class NewsFeedDataState(
     val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
 )
+
+fun NewsFeedDataState.toContentUiModel() = NewsFeedUiModel.Content(
+    articles = articles,
+    isRefreshing = isRefreshing,
+)

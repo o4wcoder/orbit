@@ -17,6 +17,8 @@ plugins {
     alias(libs.plugins.hilt)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.spotless)
+    // Kotlin Parcelize for @Parcelize support
+    id("kotlin-parcelize")
     id("kotlin-kapt")
 }
 
@@ -74,6 +76,7 @@ dependencies {
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material3.window.size)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.coil.compose)

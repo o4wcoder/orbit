@@ -167,7 +167,7 @@ fun SourceAvatar(
     // Source-specific accent, harmonized with surface
     val harmonizedBackground = remember(sourceName, colors.surface, isDark) {
         val accent = sourceAccentColorFromName(sourceName, isDark)
-        harmonizeColor(accent, colors.surface, amount = if (isDark) 0.55f else 0.65f)
+        harmonizeColor(accent, colors.surface, blendAmount = if (isDark) 0.55f else 0.65f)
     }
 
     var loadFailed by remember(imageUrl) { mutableStateOf(false) }
@@ -185,7 +185,7 @@ fun SourceAvatar(
                     .data(imageUrl)
                     .crossfade(true)
                     .build(),
-                contentDescription = "${sourceName} logo",
+                contentDescription = "$sourceName logo",
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
                 onError = {
@@ -260,6 +260,7 @@ internal fun getArticlePreviewData(id: String) =
             Category(
                 id = "1",
                 name = "Android",
+                group = "Android",
                 colorLight = Color(0xFF00FF00),
                 colorDark = Color(0xFF00FF00),
             ),

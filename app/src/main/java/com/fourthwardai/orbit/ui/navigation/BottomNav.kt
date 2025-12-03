@@ -5,11 +5,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -18,12 +20,17 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -32,6 +39,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeed
+import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
@@ -50,6 +58,11 @@ private val bottomNavItems = listOf(
 @Composable
 fun OrbitAppNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    var showFilters by remember { mutableStateOf(false) }
+
     Scaffold(
         modifier = modifier,
         topBar = {
@@ -59,6 +72,17 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         text = stringResource(R.string.app_name),
                         color = MaterialTheme.colorScheme.onSurface,
                     )
+                },
+
+                actions = {
+                    if (currentRoute == Screen.News.route) {
+                        IconButton(onClick = { showFilters = true }) {
+                            Icon(
+                                imageVector = Icons.Filled.FilterList,
+                                contentDescription = stringResource(R.string.filters_button_description),
+                            )
+                        }
+                    }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceContainer,
@@ -75,7 +99,21 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
             modifier = Modifier.padding(innerPadding),
         ) {
             composable(Screen.News.route) {
-                NewsFeed(modifier = Modifier.fillMaxSize())
+                val viewModel: NewsFeedViewModel = hiltViewModel()
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                NewsFeed(
+                    uiModel = uiState,
+                    onRefresh = viewModel::refreshArticles,
+                    showFilters = showFilters,
+                    filters = viewModel.filter.collectAsStateWithLifecycle().value,
+                    onDismissFilters = { showFilters = false },
+                    onApply = { groups, categoryIds ->
+                        viewModel.onFiltersApplied(groups, categoryIds)
+                        showFilters = false
+                    },
+                    categories = viewModel.categories.collectAsStateWithLifecycle().value,
+                    modifier = Modifier.fillMaxSize(),
+                )
             }
             composable(Screen.Trends.route) {
                 // Empty placeholder for Trends

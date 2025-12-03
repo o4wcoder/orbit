@@ -37,10 +37,11 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.fourthwardai.orbit.domain.Category
+import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.LoadingSpinner
+import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterDialog
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
@@ -48,21 +49,40 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun NewsFeed(modifier: Modifier = Modifier) {
-    val viewModel: NewsFeedViewModel = hiltViewModel()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+fun NewsFeed(
+    uiModel: NewsFeedUiModel,
+    categories: List<Category>,
+    showFilters: Boolean,
+    filters: FeedFilter,
+    onRefresh: () -> Unit,
+    onDismissFilters: () -> Unit,
+    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    NewsFeedContent(
+        uiModel = uiModel,
+        onRefresh = onRefresh,
+        modifier = modifier,
+    )
 
-    // No Scaffold here — the top app bar is owned by the app-level Scaffold in OrbitAppNavHost
-    NewsFeedContent(uiModel = uiState, modifier = modifier, onRefresh = { viewModel.refreshArticles() })
+    if (showFilters) {
+        CategoryFilterDialog(
+            categories = categories,
+            initialSelectedGroups = filters.selectedGroups,
+            initialSelectedCategoryIds = filters.selectedCategoryIds,
+            onApply = onApply,
+            onDismiss = onDismissFilters,
+        )
+    }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-fun NewsFeedContent(
+private fun NewsFeedContent(
     uiModel: NewsFeedUiModel,
+    onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
-    onRefresh: () -> Unit = {},
 ) {
+    // No Scaffold here — the top app bar is owned by the app-level Scaffold in OrbitAppNavHost
     BoxWithConstraints(modifier = modifier) {
         val context = LocalContext.current
         val windowSizeClass = LocalWindowClassSize.current
@@ -72,7 +92,10 @@ fun NewsFeedContent(
         // Taking the gradient out for now. Doesn't quite look right.
         val heightPx = with(LocalDensity.current) { maxHeight.toPx() }
         val gradient = Brush.verticalGradient(
-            colors = listOf(MaterialTheme.colorScheme.surfaceContainer, MaterialTheme.colorScheme.primary),
+            colors = listOf(
+                MaterialTheme.colorScheme.surfaceContainer,
+                MaterialTheme.colorScheme.primary,
+            ),
             startY = heightPx / 2f,
             endY = heightPx,
         )
@@ -81,7 +104,8 @@ fun NewsFeedContent(
             state = pullState,
             isRefreshing = uiModel.isRefreshing,
             onRefresh = onRefresh,
-            modifier = Modifier.fillMaxSize().background(color = MaterialTheme.colorScheme.background),
+            modifier = Modifier.fillMaxSize()
+                .background(color = MaterialTheme.colorScheme.background),
             indicator = {
                 Indicator(
                     modifier = Modifier.align(Alignment.TopCenter),
@@ -134,7 +158,6 @@ fun NewsFeedContent(
                                 key = { article -> article.id },
                             ) { article ->
 
-                                // give each grid item padding so there's visible spacing between cells
                                 ArticleCard(
                                     article,
                                     modifier = Modifier
