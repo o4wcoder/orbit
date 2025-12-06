@@ -70,7 +70,7 @@ fun NewsFeed(
         NewsFeedContent(
             uiModel = uiModel,
             onRefresh = onRefresh,
-            modifier = modifier,
+            modifier = Modifier,
         )
     }
 
