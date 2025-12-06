@@ -16,14 +16,14 @@ class ArticleService(
     private val orbitBaseUrl: String,
 ) {
     suspend fun fetchArticles(): ApiResult<List<Article>> = try {
-        val dtos: List<ArticleDto> = client.get("$orbitBaseUrl${OrbitEnpoints.ARTICLE_FEED}").body()
+        val dtos: List<ArticleDto> = client.get("$orbitBaseUrl${OrbitEndpoints.ARTICLE_FEED}").body()
         ApiResult.Success(dtos.map { it.toDomain() })
     } catch (e: Exception) {
         ApiResult.Failure(e.toApiError())
     }
 
     suspend fun fetchArticleCategories(): ApiResult<List<Category>> = try {
-        val dtos: List<CategoryDto> = client.get("$orbitBaseUrl${OrbitEnpoints.ARTICLE_CATEGORIES}").body()
+        val dtos: List<CategoryDto> = client.get("$orbitBaseUrl${OrbitEndpoints.ARTICLE_CATEGORIES}").body()
         ApiResult.Success(dtos.map { it.toDomain() })
     } catch (e: Exception) {
         ApiResult.Failure(e.toApiError())

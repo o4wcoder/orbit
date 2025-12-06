@@ -9,6 +9,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -59,11 +60,19 @@ fun NewsFeed(
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    NewsFeedContent(
-        uiModel = uiModel,
-        onRefresh = onRefresh,
-        modifier = modifier,
-    )
+    Column(modifier = modifier) {
+        NewsFeedActiveFiltersBar(
+            categories = categories,
+            filters = filters,
+            onApply = onApply,
+        )
+
+        NewsFeedContent(
+            uiModel = uiModel,
+            onRefresh = onRefresh,
+            modifier = Modifier,
+        )
+    }
 
     if (showFilters) {
         CategoryFilterDialog(
