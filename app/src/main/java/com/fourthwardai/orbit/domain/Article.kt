@@ -3,6 +3,8 @@ package com.fourthwardai.orbit.domain
 import androidx.compose.ui.graphics.Color
 import androidx.core.graphics.toColorInt
 import com.fourthwardai.orbit.network.dto.ArticleDto
+import java.time.Instant
+import java.time.ZoneId
 
 data class Article(
     val id: String,
@@ -15,7 +17,7 @@ data class Article(
     val source: String,
     val sourceAvatarUrl: String?,
     val createdTime: String,
-    val ingestedAt: String,
+    val ingestedAt: Instant,
     val categories: List<Category>,
 )
 
@@ -31,7 +33,7 @@ fun ArticleDto.toDomain(): Article =
         source = source,
         sourceAvatarUrl = sourceAvatarUrl,
         createdTime = createdTime,
-        ingestedAt = ingestedAt,
+        ingestedAt = Instant.parse(ingestedAt),
         categories = categories.map { category ->
             Category(
                 id = category.id,
@@ -50,4 +52,12 @@ fun String.toComposeColor(): Color {
     } catch (e: IllegalArgumentException) {
         Color.Gray
     }
+}
+
+fun Article.shuffleKey(): Int {
+    val localDate = ingestedAt.atZone(ZoneId.of("UTC")).toLocalDate()
+    val dayKey = localDate.toEpochDay()
+
+    val hashInput = "$dayKey|$source|$title|$url"
+    return hashInput.hashCode()
 }
