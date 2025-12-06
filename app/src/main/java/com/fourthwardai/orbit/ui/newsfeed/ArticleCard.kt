@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -45,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import coil.transition.CrossfadeTransition
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
@@ -54,49 +56,43 @@ import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 import com.fourthwardai.orbit.ui.util.harmonizeColor
 import com.fourthwardai.orbit.ui.util.sourceAccentColorFromName
+import com.revenuecat.placeholder.PlaceholderDefaults
+import com.revenuecat.placeholder.placeholder
 import java.util.Locale
 
 @Composable
 fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
     val configuration = LocalConfiguration.current
-    val locale: Locale = if (configuration.locales.isEmpty) Locale.getDefault() else configuration.locales[0]
+    val locale: Locale =
+        if (configuration.locales.isEmpty) Locale.getDefault() else configuration.locales[0]
     val windowSizeClass = LocalWindowClassSize.current
     val widthSizeClass = windowSizeClass.widthSizeClass
 
     ElevatedCard(modifier = modifier) {
         Column(modifier = Modifier.fillMaxWidth()) {
-            AsyncImage(
-                modifier = Modifier.fillMaxWidth(),
-                model = article.heroImageUrl,
-                contentScale = ContentScale.FillWidth,
-                placeholder = painterResource(R.drawable.article_example),
-                contentDescription = null,
-
-            )
+            ArticleHeroImage(article.heroImageUrl)
 
             Column(modifier = Modifier.padding(horizontal = 16.dp)) {
                 VerticalSpacer(16.dp)
 
-                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     val capitalizedSource = article.source.replaceFirstChar {
                         if (it.isLowerCase()) it.titlecase(locale) else it.toString()
                     }
                     SourceAvatar(
                         imageUrl = article.sourceAvatarUrl,
                         sourceName = capitalizedSource,
-
                     )
                     HorizontalSpacer(8.dp)
                     Text(
                         text = capitalizedSource,
                         style = MaterialTheme.typography.labelLarge,
                     )
-
-//                    article.author?.let {
-//                        HorizontalSpacer(16.dp)
-//                        Text(text = article.author, style = MaterialTheme.typography.labelMedium)
-//                    }
                 }
+
                 VerticalSpacer(8.dp)
 
                 Text(
@@ -117,21 +113,24 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                     VerticalSpacer(8.dp)
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier
-                            .fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                     ) {
                         items(article.categories) { category ->
-                            // Determine chip background based on current theme (use surface luminance)
-                            val isLightTheme = MaterialTheme.colorScheme.surface.luminance() > 0.5f
-                            val chipBg: Color = if (isLightTheme) category.colorLight else category.colorDark
-                            val contentColor: Color = if (chipBg.luminance() > 0.5f) Color.Black else Color.White
+                            val isLightTheme =
+                                MaterialTheme.colorScheme.surface.luminance() > 0.5f
+                            val chipBg: Color =
+                                if (isLightTheme) category.colorLight else category.colorDark
+                            val contentColor: Color =
+                                if (chipBg.luminance() > 0.5f) Color.Black else Color.White
 
                             AssistChip(
                                 onClick = { /* no-op */ },
                                 label = {
                                     Text(
                                         text = category.name,
-                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 12.sp),
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontSize = 12.sp,
+                                        ),
                                         color = contentColor,
                                     )
                                 },
@@ -147,6 +146,31 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
             }
         }
     }
+}
+
+@Composable
+fun ArticleHeroImage(heroImageUrl: String?) {
+    var isLoading by remember { mutableStateOf(true) }
+
+    AsyncImage(
+        model = ImageRequest.Builder(LocalContext.current)
+            .data(heroImageUrl)
+            .transitionFactory(CrossfadeTransition.Factory())
+            .build(),
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .placeholder(
+                enabled = isLoading,
+                highlight = PlaceholderDefaults.shimmer,
+            ),
+        error = painterResource(R.drawable.orbit_article_placeholder),
+        onLoading = { isLoading = true },
+        onSuccess = { isLoading = false },
+        onError = { isLoading = false },
+    )
 }
 
 @Composable
@@ -171,6 +195,7 @@ fun SourceAvatar(
     }
 
     var loadFailed by remember(imageUrl) { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(true) }
 
     Box(
         modifier = modifier
@@ -187,9 +212,16 @@ fun SourceAvatar(
                     .build(),
                 contentDescription = "$sourceName logo",
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize()
+                    .placeholder(
+                        enabled = isLoading,
+                        highlight = PlaceholderDefaults.shimmer,
+                    ),
+                onLoading = { isLoading = true },
+                onSuccess = { isLoading = false },
                 onError = {
                     loadFailed = true
+                    isLoading = false
                 },
             )
         } else {
