@@ -80,6 +80,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.androidx.hilt.navigation.compose)
     implementation(libs.coil.compose)
+    implementation(libs.revenuecat.placeholder)
     implementation(libs.androidx.compose.runtime)
     implementation(libs.hilt.android)
     implementation(libs.ktor.client.core)
