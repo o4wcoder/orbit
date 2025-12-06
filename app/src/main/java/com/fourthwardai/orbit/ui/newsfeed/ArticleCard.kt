@@ -150,7 +150,7 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
 
 @Composable
 fun ArticleHeroImage(heroImageUrl: String?) {
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember(heroImageUrl) { mutableStateOf(true) }
 
     AsyncImage(
         model = ImageRequest.Builder(LocalContext.current)
