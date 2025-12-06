@@ -195,7 +195,7 @@ fun SourceAvatar(
     }
 
     var loadFailed by remember(imageUrl) { mutableStateOf(false) }
-    var isLoading by remember { mutableStateOf(true) }
+    var isLoading by remember(imageUrl) { mutableStateOf(true) }
 
     Box(
         modifier = modifier
