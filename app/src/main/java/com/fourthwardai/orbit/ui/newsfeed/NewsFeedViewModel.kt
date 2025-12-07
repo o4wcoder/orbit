@@ -7,7 +7,7 @@ import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.onFailure
 import com.fourthwardai.orbit.network.onSuccess
-import com.fourthwardai.repository.ArticleRepository
+import com.fourthwardai.orbit.repository.ArticleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.currentCoroutineContext

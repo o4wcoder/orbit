@@ -14,10 +14,14 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.staggeredgrid.LazyStaggeredGridState
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -28,6 +32,7 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -60,6 +65,15 @@ fun NewsFeed(
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val listState = rememberLazyListState() // phone list
+    val staggeredGridState = rememberLazyStaggeredGridState() // tablet
+
+    // Scroll-to-top effect when filters change (from dialog)
+    LaunchedEffect(filters.selectedGroups, filters.selectedCategoryIds) {
+        // pick which state to scroll depending on layout, or just scroll both safely
+        listState.scrollToItem(0)
+        staggeredGridState.scrollToItem(0)
+    }
     Column(modifier = modifier) {
         NewsFeedActiveFiltersBar(
             categories = categories,
@@ -69,6 +83,8 @@ fun NewsFeed(
 
         NewsFeedContent(
             uiModel = uiModel,
+            listState = listState,
+            staggeredGridState = staggeredGridState,
             onRefresh = onRefresh,
             modifier = Modifier,
         )
@@ -88,6 +104,8 @@ fun NewsFeed(
 @Composable
 private fun NewsFeedContent(
     uiModel: NewsFeedUiModel,
+    listState: LazyListState,
+    staggeredGridState: LazyStaggeredGridState,
     onRefresh: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -132,6 +150,7 @@ private fun NewsFeedContent(
                     if (widthSizeClass == WindowWidthSizeClass.Compact) {
                         // Phone: single column list
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(horizontal = 16.dp),
@@ -157,6 +176,7 @@ private fun NewsFeedContent(
                     } else {
                         // Tablet: staggered grid with 2 columns and spacing between cells
                         LazyVerticalStaggeredGrid(
+                            state = staggeredGridState,
                             columns = StaggeredGridCells.Fixed(2),
                             modifier = Modifier.fillMaxSize(),
                             // increase content padding so outer edges are separated from screen edges
@@ -210,6 +230,8 @@ fun NewsFeedPreview() {
             uiModel = NewsFeedUiModel.Content(
                 articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2")),
             ),
+            listState = rememberLazyListState(),
+            staggeredGridState = rememberLazyStaggeredGridState(),
             onRefresh = {},
         )
     }
@@ -227,6 +249,8 @@ fun NewsFeedTabletPreview() {
                 uiModel = NewsFeedUiModel.Content(
                     articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2"), getArticlePreviewData("3")),
                 ),
+                listState = rememberLazyListState(),
+                staggeredGridState = rememberLazyStaggeredGridState(),
                 onRefresh = {},
             )
         }

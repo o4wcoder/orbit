@@ -1,4 +1,4 @@
-package com.fourthwardai.repository
+package com.fourthwardai.orbit.repository
 
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category

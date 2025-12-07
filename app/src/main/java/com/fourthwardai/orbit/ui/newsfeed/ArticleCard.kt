@@ -58,6 +58,7 @@ import com.fourthwardai.orbit.ui.util.harmonizeColor
 import com.fourthwardai.orbit.ui.util.sourceAccentColorFromName
 import com.revenuecat.placeholder.PlaceholderDefaults
 import com.revenuecat.placeholder.placeholder
+import java.time.Instant
 import java.util.Locale
 
 @Composable
@@ -287,7 +288,7 @@ internal fun getArticlePreviewData(id: String) =
         sourceAvatarUrl = null,
         teaser = "This is a really cool article about Kotlin in Android Development",
         createdTime = "2023-07-10T12:00:00Z",
-        ingestedAt = "2023-07-10T12:00:00Z",
+        ingestedAt = Instant.parse("2023-07-10T12:00:00Z"),
         categories = listOf(
             Category(
                 id = "1",
