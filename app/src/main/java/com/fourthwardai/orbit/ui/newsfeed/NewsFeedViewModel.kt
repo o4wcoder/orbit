@@ -105,6 +105,12 @@ class NewsFeedViewModel @Inject constructor(
         )
     }
 
+    fun onBookmarkClick(id: String, isBookmarked: Boolean) {
+        viewModelScope.launch(ioDispatcher) {
+            articleRepository.bookmarkArticle(id, isBookmarked)
+        }
+    }
+
     private fun loadCategories() {
         viewModelScope.launch(ioDispatcher) {
             val categoriesResult = articleRepository.getCategories()

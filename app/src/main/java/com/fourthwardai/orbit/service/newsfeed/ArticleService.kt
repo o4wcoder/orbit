@@ -10,6 +10,11 @@ import com.fourthwardai.orbit.network.toApiError
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.http.ContentType
+import io.ktor.http.contentType
+import timber.log.Timber
 
 class ArticleService(
     private val client: HttpClient,
@@ -26,6 +31,19 @@ class ArticleService(
         val dtos: List<CategoryDto> = client.get("$orbitBaseUrl${OrbitEndpoints.ARTICLE_CATEGORIES}").body()
         ApiResult.Success(dtos.map { it.toDomain() })
     } catch (e: Exception) {
+        ApiResult.Failure(e.toApiError())
+    }
+
+    suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = try {
+        Timber.d("CGH: bookmarkArticle called with $id, $isBookmarked")
+        val requestBody = BookmarkArticleRequest(id, isBookmarked)
+        client.post("$orbitBaseUrl${OrbitEndpoints.ARTICLE_BOOKMARK}") {
+            contentType(ContentType.Application.Json)
+            setBody(requestBody)
+        }
+        ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        Timber.d("CGH: bookmarkArticle failed with $e")
         ApiResult.Failure(e.toApiError())
     }
 }

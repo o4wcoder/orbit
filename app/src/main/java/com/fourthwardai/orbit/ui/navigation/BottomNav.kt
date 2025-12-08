@@ -111,6 +111,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         viewModel.onFiltersApplied(groups, categoryIds)
                         showFilters = false
                     },
+                    onBookmarkClick = viewModel::onBookmarkClick,
                     categories = viewModel.categories.collectAsStateWithLifecycle().value,
                     modifier = Modifier.fillMaxSize(),
                 )

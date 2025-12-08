@@ -63,6 +63,7 @@ fun NewsFeed(
     onRefresh: () -> Unit,
     onDismissFilters: () -> Unit,
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
+    onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState() // phone list
@@ -86,6 +87,7 @@ fun NewsFeed(
             listState = listState,
             staggeredGridState = staggeredGridState,
             onRefresh = onRefresh,
+            onBookmarkClick = onBookmarkClick,
             modifier = Modifier,
         )
     }
@@ -107,6 +109,7 @@ private fun NewsFeedContent(
     listState: LazyListState,
     staggeredGridState: LazyStaggeredGridState,
     onRefresh: () -> Unit,
+    onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     // No Scaffold here — the top app bar is owned by the app-level Scaffold in OrbitAppNavHost
@@ -165,6 +168,7 @@ private fun NewsFeedContent(
 
                                 ArticleCard(
                                     article,
+                                    onBookmarkClick = onBookmarkClick,
                                     modifier = Modifier.clickable(
                                         role = Role.Button,
                                         onClick = { openMediumOrBrowser(context, article.url) },
@@ -189,6 +193,8 @@ private fun NewsFeedContent(
 
                                 ArticleCard(
                                     article,
+                                    onBookmarkClick = onBookmarkClick,
+
                                     modifier = Modifier
                                         .padding(12.dp)
                                         .clickable(
@@ -233,6 +239,7 @@ fun NewsFeedPreview() {
             listState = rememberLazyListState(),
             staggeredGridState = rememberLazyStaggeredGridState(),
             onRefresh = {},
+            onBookmarkClick = { _, _ -> },
         )
     }
 }
@@ -252,6 +259,7 @@ fun NewsFeedTabletPreview() {
                 listState = rememberLazyListState(),
                 staggeredGridState = rememberLazyStaggeredGridState(),
                 onRefresh = {},
+                onBookmarkClick = { _, _ -> },
             )
         }
     }

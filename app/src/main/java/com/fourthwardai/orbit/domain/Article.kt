@@ -19,6 +19,7 @@ data class Article(
     val createdTime: String,
     val ingestedAt: Instant,
     val categories: List<Category>,
+    val isBookmarked: Boolean,
 )
 
 fun ArticleDto.toDomain(): Article =
@@ -43,6 +44,7 @@ fun ArticleDto.toDomain(): Article =
                 colorDark = category.colorDark.toComposeColor(),
             )
         },
+        isBookmarked = isBookmarked == true,
     )
 
 fun String.toComposeColor(): Color {
