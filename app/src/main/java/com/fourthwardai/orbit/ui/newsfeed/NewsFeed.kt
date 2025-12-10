@@ -204,7 +204,6 @@ private fun NewsFeedContent(
                                 ArticleCard(
                                     article,
                                     onBookmarkClick = onBookmarkClick,
-
                                     modifier = Modifier
                                         .padding(12.dp)
                                         .clickable(
