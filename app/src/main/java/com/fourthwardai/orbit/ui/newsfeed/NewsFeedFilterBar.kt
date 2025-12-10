@@ -84,7 +84,6 @@ fun NewsFeedActiveFiltersBar(
                         )
                     }
                 }
-                Timber.d("CG: NewsFeedl bookmark = ${filters.bookmarkedOnly}")
                 // Bookmarked filter
                 if (filters.bookmarkedOnly) {
                     item {
