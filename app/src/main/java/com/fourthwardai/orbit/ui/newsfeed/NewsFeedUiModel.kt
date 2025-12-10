@@ -13,4 +13,8 @@ sealed interface NewsFeedUiModel {
         val articles: List<Article> = emptyList(),
         override val isRefreshing: Boolean = false,
     ) : NewsFeedUiModel
+
+    data object Empty : NewsFeedUiModel {
+        override val isRefreshing: Boolean = false
+    }
 }

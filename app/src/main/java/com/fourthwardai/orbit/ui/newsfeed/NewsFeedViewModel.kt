@@ -47,6 +47,8 @@ class NewsFeedViewModel @Inject constructor(
             .map { dataState ->
                 if (dataState.isLoading) {
                     NewsFeedUiModel.Loading
+                } else if (dataState.articles.isEmpty()) {
+                    NewsFeedUiModel.Empty
                 } else {
                     dataState.toContentUiModel()
                 }
@@ -87,7 +89,9 @@ class NewsFeedViewModel @Inject constructor(
                                 category.id in filter.selectedCategoryIds
                             }
 
-                    matchesGroup && matchesCategory
+                    val matchesBookmarked = !filter.bookmarkedOnly || article.isBookmarked
+
+                    matchesGroup && matchesCategory && matchesBookmarked
                 }
             }.collect { filteredArticles ->
                 _dataState.update { it.copy(articles = filteredArticles) }
@@ -98,10 +102,12 @@ class NewsFeedViewModel @Inject constructor(
     fun onFiltersApplied(
         selectedGroups: Set<String>,
         selectedCategoryIds: Set<String>,
+        bookmarkedOnly: Boolean,
     ) {
         _filter.value = FeedFilter(
             selectedGroups = selectedGroups,
             selectedCategoryIds = selectedCategoryIds,
+            bookmarkedOnly = bookmarkedOnly,
         )
     }
 

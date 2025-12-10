@@ -14,7 +14,6 @@ import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
-import timber.log.Timber
 
 class ArticleService(
     private val client: HttpClient,
@@ -35,7 +34,6 @@ class ArticleService(
     }
 
     suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = try {
-        Timber.d("CGH: bookmarkArticle called with $id, $isBookmarked")
         val requestBody = BookmarkArticleRequest(id, isBookmarked)
         client.post("$orbitBaseUrl${OrbitEndpoints.ARTICLE_BOOKMARK}") {
             contentType(ContentType.Application.Json)
@@ -43,7 +41,6 @@ class ArticleService(
         }
         ApiResult.Success(Unit)
     } catch (e: Exception) {
-        Timber.d("CGH: bookmarkArticle failed with $e")
         ApiResult.Failure(e.toApiError())
     }
 }

@@ -29,19 +29,17 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import timber.log.Timber
 
 @Composable
 fun NewsFeedActiveFiltersBar(
     categories: List<Category>,
     filters: FeedFilter,
-    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
+    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>, bookmarkedOnly: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val hasActiveFilters =
-        filters.selectedGroups.isNotEmpty() || filters.selectedCategoryIds.isNotEmpty()
-
     AnimatedVisibility(
-        visible = hasActiveFilters,
+        visible = filters.hasActiveFilters,
         modifier = modifier,
     ) {
         val isDark = isSystemInDarkTheme()
@@ -67,7 +65,7 @@ fun NewsFeedActiveFiltersBar(
                         label = groupName,
                         onRemove = {
                             val newGroups = filters.selectedGroups - groupName
-                            onApply(newGroups, filters.selectedCategoryIds)
+                            onApply(newGroups, filters.selectedCategoryIds, filters.bookmarkedOnly)
                         },
                     )
                 }
@@ -81,7 +79,18 @@ fun NewsFeedActiveFiltersBar(
                             isDarkTheme = isDark,
                             onRemove = {
                                 val newCategoryIds = filters.selectedCategoryIds - category.id
-                                onApply(filters.selectedGroups, newCategoryIds)
+                                onApply(filters.selectedGroups, newCategoryIds, filters.bookmarkedOnly)
+                            },
+                        )
+                    }
+                }
+                Timber.d("CG: NewsFeedl bookmark = ${filters.bookmarkedOnly}")
+                // Bookmarked filter
+                if (filters.bookmarkedOnly) {
+                    item {
+                        BookmarkFilterChip(
+                            onRemove = {
+                                onApply(filters.selectedGroups, filters.selectedCategoryIds, false)
                             },
                         )
                     }
@@ -162,6 +171,36 @@ private fun CategoryFilterChip(
     )
 }
 
+@Composable
+private fun BookmarkFilterChip(
+    onRemove: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val bookmarkChipColors = FilterChipDefaults.filterChipColors(
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        labelColor = MaterialTheme.colorScheme.primary,
+        selectedLabelColor = MaterialTheme.colorScheme.primary,
+        iconColor = MaterialTheme.colorScheme.primary,
+        selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
+    )
+
+    FilterChip(
+        selected = true,
+        onClick = onRemove,
+        label = { Text(stringResource(R.string.filters_bookmarked)) },
+        trailingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.filters_remove_description),
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        },
+        colors = bookmarkChipColors,
+        modifier = modifier,
+    )
+}
+
 // Helper like Material's contentColorFor
 @Composable
 private fun contentColorFor(backgroundColor: Color): Color {
@@ -199,12 +238,14 @@ fun NewsFeedActiveFiltersBarPreview() {
         val sampleFilters = FeedFilter(
             selectedGroups = setOf("Mobile", "AI & ML"),
             selectedCategoryIds = setOf("android", "ai"),
+            bookmarkedOnly = true,
+
         )
 
         NewsFeedActiveFiltersBar(
             categories = sampleCategories,
             filters = sampleFilters,
-            onApply = { _, _ -> },
+            onApply = { _, _, _ -> },
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background),

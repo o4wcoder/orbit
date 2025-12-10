@@ -1,5 +1,6 @@
 package com.fourthwardai.orbit.ui.categoryfilter
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +14,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -53,11 +54,10 @@ import com.fourthwardai.orbit.ui.theme.OrbitTheme
 @Composable
 fun CategoryFilterDialog(
     categories: List<Category>,
-    // Initial selections from ViewModel / caller
     initialSelectedGroups: Set<String> = emptySet(),
     initialSelectedCategoryIds: Set<String> = emptySet(),
     initialBookmarkedOnly: Boolean = false,
-    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
+    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>, bookmarkedOnly: Boolean) -> Unit,
     onDismiss: () -> Unit,
 ) {
     // Local state inside dialog (hoisted out via onApply)
@@ -122,7 +122,7 @@ fun CategoryFilterDialog(
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = {
-                                onApply(selectedGroups, selectedCategoryIds)
+                                onApply(selectedGroups, selectedCategoryIds, bookmarkedOnly)
                             },
                         ) {
                             Text(stringResource(R.string.filters_apply))
@@ -153,7 +153,9 @@ fun CategoryFilterDialog(
                             selectedCategoryIds + categoryId
                         }
                     },
-                    onBookmarkedOnlyToggled = { bookmarkedOnly = !bookmarkedOnly },
+                    onBookmarkedOnlyToggled = {
+                        bookmarkedOnly = !bookmarkedOnly
+                    },
                 )
             }
         }
@@ -214,9 +216,11 @@ private fun FilterContent(
                 Checkbox(checked = bookmarkedOnly, onCheckedChange = { onBookmarkedOnlyToggled() })
             },
             trailingContent = {
-                Icon(imageVector = Icons.Filled.Bookmark, contentDescription = null)
+                Icon(imageVector = Icons.Outlined.Bookmark, contentDescription = null)
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onBookmarkedOnlyToggled() },
         )
 
         HorizontalDivider()
@@ -304,7 +308,7 @@ fun CategoryFilterDialogPreview() {
     OrbitTheme {
         CategoryFilterDialog(
             categories = sample,
-            onApply = { groups, categories ->
+            onApply = { groups, categories, bookmarkedOnly ->
                 // TODO: send to ViewModel
                 println("Selected groups: $groups, categories: $categories")
             },

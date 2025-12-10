@@ -107,8 +107,8 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     showFilters = showFilters,
                     filters = viewModel.filter.collectAsStateWithLifecycle().value,
                     onDismissFilters = { showFilters = false },
-                    onApply = { groups, categoryIds ->
-                        viewModel.onFiltersApplied(groups, categoryIds)
+                    onApply = { groups, categoryIds, bookmarkedOnly ->
+                        viewModel.onFiltersApplied(groups, categoryIds, bookmarkedOnly)
                         showFilters = false
                     },
                     onBookmarkClick = viewModel::onBookmarkClick,
