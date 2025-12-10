@@ -29,7 +29,6 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
-import timber.log.Timber
 
 @Composable
 fun NewsFeedActiveFiltersBar(

@@ -2,6 +2,7 @@ package com.fourthwardai.orbit.repository
 
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
+import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,8 +20,7 @@ class ArticleRepositoryImpl @Inject constructor(
     override val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
     override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> {
-        val article = _articles.value.find { it.id == id } ?: return ApiResult.Failure(Exception("Article not found"))
-        val previousArticle = article
+        val article = _articles.value.find { it.id == id } ?: return ApiResult.Failure(Exception("Article not found") as ApiError)
         val updatedArticle = article.copy(isBookmarked = isBookmarked)
         val updatedArticles = _articles.value.map { if (it.id == id) updatedArticle else it }
         _articles.value = updatedArticles
@@ -29,7 +29,7 @@ class ArticleRepositoryImpl @Inject constructor(
             is ApiResult.Success -> ApiResult.Success(Unit)
             is ApiResult.Failure -> {
                 // Rollback local state
-                val rolledBackArticles = _articles.value.map { if (it.id == id) previousArticle else it }
+                val rolledBackArticles = _articles.value.map { if (it.id == id) article else it }
                 _articles.value = rolledBackArticles
                 ApiResult.Failure(result.error)
             }

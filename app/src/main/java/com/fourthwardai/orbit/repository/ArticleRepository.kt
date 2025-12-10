@@ -21,7 +21,7 @@ interface ArticleRepository {
     /**
      * Update the bookmark status of an article.
      */
-    suspend fun bookmarkArticle(id: String, isBookmarked: Boolean)
+    suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit>
 
     /**
      * One-shot refresh from remote (n8n/Airtable).
