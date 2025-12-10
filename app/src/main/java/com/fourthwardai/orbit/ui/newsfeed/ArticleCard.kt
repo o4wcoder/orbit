@@ -343,5 +343,4 @@ internal fun getArticlePreviewData(id: String) =
             ),
         ),
         isBookmarked = true,
-
     )
