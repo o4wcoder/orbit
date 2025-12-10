@@ -18,6 +18,24 @@ class ArticleRepositoryImpl @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     override val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
+    override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> {
+        val article = _articles.value.find { it.id == id } ?: return ApiResult.Failure(Exception("Article not found"))
+        val previousArticle = article
+        val updatedArticle = article.copy(isBookmarked = isBookmarked)
+        val updatedArticles = _articles.value.map { if (it.id == id) updatedArticle else it }
+        _articles.value = updatedArticles
+
+        return when (val result = service.bookmarkArticle(id, isBookmarked)) {
+            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Failure -> {
+                // Rollback local state
+                val rolledBackArticles = _articles.value.map { if (it.id == id) previousArticle else it }
+                _articles.value = rolledBackArticles
+                ApiResult.Failure(result.error)
+            }
+        }
+    }
+
     override suspend fun refreshArticles(): ApiResult<Unit> {
         _isRefreshing.value = true
         return when (val result = service.fetchArticles()) {

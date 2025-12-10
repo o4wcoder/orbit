@@ -19,6 +19,11 @@ interface ArticleRepository {
     val isRefreshing: StateFlow<Boolean>
 
     /**
+     * Update the bookmark status of an article.
+     */
+    suspend fun bookmarkArticle(id: String, isBookmarked: Boolean)
+
+    /**
      * One-shot refresh from remote (n8n/Airtable).
      * For now: fetch *all* articles and store in [articles].
      */

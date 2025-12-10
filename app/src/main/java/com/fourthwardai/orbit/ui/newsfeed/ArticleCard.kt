@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,9 +16,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.ElevatedCard
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
@@ -62,7 +68,11 @@ import java.time.Instant
 import java.util.Locale
 
 @Composable
-fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
+fun ArticleCard(
+    article: Article,
+    onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val configuration = LocalConfiguration.current
     val locale: Locale =
         if (configuration.locales.isEmpty) Locale.getDefault() else configuration.locales[0]
@@ -92,6 +102,19 @@ fun ArticleCard(article: Article, modifier: Modifier = Modifier) {
                         text = capitalizedSource,
                         style = MaterialTheme.typography.labelLarge,
                     )
+                    Spacer(modifier = Modifier.weight(1f))
+                    IconButton(
+                        onClick = { onBookmarkClick(article.id, !article.isBookmarked) },
+                        modifier = Modifier
+                            .size(28.dp)
+                            .clip(CircleShape),
+                    ) {
+                        val bookmarkIcon = if (article.isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder
+                        Icon(
+                            imageVector = bookmarkIcon,
+                            contentDescription = if (article.isBookmarked) "Bookmarked" else "Not bookmarked",
+                        )
+                    }
                 }
 
                 VerticalSpacer(8.dp)
@@ -252,6 +275,25 @@ private fun ArticleCardPreview() {
             Box(modifier = Modifier.padding(16.dp)) {
                 ArticleCard(
                     article = getArticlePreviewData("1"),
+                    onBookmarkClick = { _, _ -> },
+                )
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
+@Preview(showBackground = true)
+@Composable
+private fun ArticleCardDarkThemePreview() {
+    OrbitTheme(darkTheme = true) {
+        CompositionLocalProvider(
+            LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
+        ) {
+            Box(modifier = Modifier.padding(16.dp)) {
+                ArticleCard(
+                    article = getArticlePreviewData("1"),
+                    onBookmarkClick = { _, _ -> },
                 )
             }
         }
@@ -269,6 +311,7 @@ private fun ArticleCardTabletPreview() {
             Box(modifier = Modifier.padding(16.dp)) {
                 ArticleCard(
                     article = getArticlePreviewData("1"),
+                    onBookmarkClick = { _, _ -> },
                 )
             }
         }
@@ -298,5 +341,5 @@ internal fun getArticlePreviewData(id: String) =
                 colorDark = Color(0xFF00FF00),
             ),
         ),
-
+        isBookmarked = true,
     )

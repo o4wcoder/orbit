@@ -16,4 +16,5 @@ data class ArticleDto(
     val sourceAvatarUrl: String? = null,
     val ingestedAt: String,
     val categories: List<CategoryDto>,
+    val isBookmarked: Boolean? = null,
 )

@@ -15,4 +15,13 @@
     <string name="filters_category_title">Category</string>
     <string name="filters_no_categories">No categories in the selected groups</string>
     <string name="filters_remove_description">Remove filter</string>
+    <string name="filters_bookmarked">Bookmarked</string>
+
+    <string name="filters_saved_title">Saved</string>
+    <string name="filters_saved_bookmarked_only">Bookmarked only</string>
+    <string name="filters_saved_description">Show only articles you\'ve saved</string>
+
+    <!-- Empty articles message -->
+    <string name="empty_articles_title">No articles found</string>
+
 </resources>
