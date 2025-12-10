@@ -240,7 +240,6 @@ fun NewsFeedActiveFiltersBarPreview() {
             bookmarkedOnly = true,
 
         )
-
         NewsFeedActiveFiltersBar(
             categories = sampleCategories,
             filters = sampleFilters,
