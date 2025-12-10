@@ -106,7 +106,6 @@ fun ArticleCard(
                     IconButton(
                         onClick = { onBookmarkClick(article.id, !article.isBookmarked) },
                         modifier = Modifier
-                            //  .padding(8.dp)
                             .size(28.dp)
                             .clip(CircleShape),
                     ) {
