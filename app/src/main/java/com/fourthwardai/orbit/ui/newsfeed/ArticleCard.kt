@@ -44,6 +44,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -112,7 +113,11 @@ fun ArticleCard(
                         val bookmarkIcon = if (article.isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder
                         Icon(
                             imageVector = bookmarkIcon,
-                            contentDescription = if (article.isBookmarked) "Bookmarked" else "Not bookmarked",
+                            contentDescription = if (article.isBookmarked) {
+                                stringResource(R.string.article_bookmarked_description)
+                            } else {
+                                stringResource(R.string.article_not_bookmarked_description)
+                            },
                         )
                     }
                 }

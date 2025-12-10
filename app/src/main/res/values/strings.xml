@@ -24,4 +24,8 @@
     <!-- Empty articles message -->
     <string name="empty_articles_title">No articles found</string>
 
+    <!-- Article card content descriptions -->
+    <string name="article_bookmarked_description">Bookmarked</string>
+    <string name="article_not_bookmarked_description">Not bookmarked</string>
+
 </resources>
