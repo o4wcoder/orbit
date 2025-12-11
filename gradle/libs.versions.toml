@@ -18,6 +18,9 @@ ktorVersion = "3.3.2"
 timberVersion = "5.0.1"
 hiltNavigationCompose = "1.3.0"
 revenuecat = "1.0.2"
+assertk = "0.25"
+mockk = "1.13.9"
+kotlinx-coroutines-test = "1.10.2"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -51,6 +54,10 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 revenuecat-placeholder = { group = "com.revenuecat.purchases", name = "placeholder", version.ref = "revenuecat" }
 
+# Test libraries
+assertk-jvm = { group = "com.willowtreeapps.assertk", name = "assertk-jvm", version.ref = "assertk" }
+mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
+kotlinx-coroutines-test-jvm = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test-jvm", version.ref = "kotlinx-coroutines-test" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

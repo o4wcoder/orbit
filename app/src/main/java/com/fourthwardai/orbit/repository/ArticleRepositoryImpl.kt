@@ -5,8 +5,10 @@ import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 class ArticleRepositoryImpl @Inject constructor(
@@ -19,13 +21,13 @@ class ArticleRepositoryImpl @Inject constructor(
     private val _isRefreshing = MutableStateFlow(false)
     override val isRefreshing: StateFlow<Boolean> = _isRefreshing
 
-    override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> {
-        val article = _articles.value.find { it.id == id } ?: return ApiResult.Failure(Exception("Article not found") as ApiError)
+    override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(Dispatchers.IO) {
+        val article = _articles.value.find { it.id == id } ?: return@withContext ApiResult.Failure(Exception("Article not found") as ApiError)
         val updatedArticle = article.copy(isBookmarked = isBookmarked)
         val updatedArticles = _articles.value.map { if (it.id == id) updatedArticle else it }
         _articles.value = updatedArticles
 
-        return when (val result = service.bookmarkArticle(id, isBookmarked)) {
+        when (val result = service.bookmarkArticle(id, isBookmarked)) {
             is ApiResult.Success -> ApiResult.Success(Unit)
             is ApiResult.Failure -> {
                 // Rollback local state
@@ -36,9 +38,9 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun refreshArticles(): ApiResult<Unit> {
+    override suspend fun refreshArticles(): ApiResult<Unit> = withContext(Dispatchers.IO) {
         _isRefreshing.value = true
-        return when (val result = service.fetchArticles()) {
+        when (val result = service.fetchArticles()) {
             is ApiResult.Success -> {
                 _articles.value = result.data
                 _isRefreshing.value = false
@@ -51,7 +53,7 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getCategories(): ApiResult<List<Category>> {
-        return service.fetchArticleCategories()
+    override suspend fun getCategories(): ApiResult<List<Category>> = withContext(Dispatchers.IO) {
+        service.fetchArticleCategories()
     }
 }

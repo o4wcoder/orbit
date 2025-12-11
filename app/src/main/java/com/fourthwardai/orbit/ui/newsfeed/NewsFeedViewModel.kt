@@ -71,7 +71,7 @@ class NewsFeedViewModel @Inject constructor(
     }
 
     private fun observeArticles() {
-        viewModelScope.launch(ioDispatcher) {
+        viewModelScope.launch {
             combine(
                 articleRepository.articles,
                 _filter,
@@ -112,13 +112,13 @@ class NewsFeedViewModel @Inject constructor(
     }
 
     fun onBookmarkClick(id: String, isBookmarked: Boolean) {
-        viewModelScope.launch(ioDispatcher) {
+        viewModelScope.launch {
             articleRepository.bookmarkArticle(id, isBookmarked)
         }
     }
 
     private fun loadCategories() {
-        viewModelScope.launch(ioDispatcher) {
+        viewModelScope.launch {
             val categoriesResult = articleRepository.getCategories()
             categoriesResult.onSuccess { categories ->
                 _categories.update { categories }
@@ -130,7 +130,7 @@ class NewsFeedViewModel @Inject constructor(
     }
 
     fun refreshArticles() {
-        viewModelScope.launch(ioDispatcher) {
+        viewModelScope.launch {
             // If it's the very first load, show the big spinner
             if (dataState.articles.isEmpty()) {
                 showLoadingSpinner()
