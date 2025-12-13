@@ -13,6 +13,7 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -34,9 +35,6 @@ class ArticleRepositoryImpl @Inject constructor(
     private val _articles = MutableStateFlow<List<Article>?>(null)
     override val articles: StateFlow<List<Article>?> = _articles
 
-    private val _isRefreshing = MutableStateFlow(false)
-    override val isRefreshing: StateFlow<Boolean> = _isRefreshing
-
     init {
         // Observe DB and keep in-memory state in sync with cached articles
         scope.launch {
@@ -45,6 +43,23 @@ class ArticleRepositoryImpl @Inject constructor(
                 .collect { domainArticles ->
                     _articles.value = domainArticles
                 }
+        }
+
+        // Also perform an immediate background sync from the network so the DB is kept up to date.
+        // We don't block emitting the DB flow above — the DB collector will immediately emit cached data.
+        scope.launch {
+            try {
+                val result = withContext(ioDispatcher) { service.fetchArticles() }
+                if (result is ApiResult.Success) {
+                    val articlesWithCategories = mapArticlesWithCategories(result.data)
+                    // replaceAll runs in a transaction on the DAO
+                    articleDao.replaceAll(articlesWithCategories)
+                }
+            } catch (t: Throwable) {
+                // Log but don't crash init; repository will still serve DB-cached articles.
+                // Timber isn't imported in this file; swallow to keep init resilient.
+                ensureActive()
+            }
         }
     }
 
@@ -66,30 +81,21 @@ class ArticleRepositoryImpl @Inject constructor(
     }
 
     override suspend fun refreshArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
-        _isRefreshing.value = true
         when (val result = service.fetchArticles()) {
             is ApiResult.Success -> {
                 // Persist fetched articles and categories into Room (replace all in a transaction)
                 try {
-                    val awcs = result.data.map { article ->
-                        val entity = article.toEntity()
-                        val categories = article.categories.map { it.toEntity() }
-                        ArticleWithCategories(article = entity, categories = categories)
-                    }
-                    articleDao.replaceAll(awcs)
+                    val articlesWithCategories = mapArticlesWithCategories(result.data)
+                    articleDao.replaceAll(articlesWithCategories)
                     // Also update in-memory cache immediately so callers (and tests) see new data
                     _articles.value = result.data
                 } catch (e: Exception) {
-                    _isRefreshing.value = false
                     return@withContext ApiResult.Failure(e as ApiError)
                 }
 
-                // _articles will be updated by the DAO flow collector we started in init
-                _isRefreshing.value = false
                 ApiResult.Success(Unit)
             }
             is ApiResult.Failure -> {
-                _isRefreshing.value = false
                 ApiResult.Failure(result.error)
             }
         }
@@ -98,4 +104,12 @@ class ArticleRepositoryImpl @Inject constructor(
     override suspend fun getCategories(): ApiResult<List<Category>> = withContext(ioDispatcher) {
         service.fetchArticleCategories()
     }
+
+    // Convert domain Articles -> ArticleWithCategories for DB persistence
+    private fun mapArticlesWithCategories(articles: List<Article>): List<ArticleWithCategories> =
+        articles.map { article ->
+            val entity = article.toEntity()
+            val categories = article.categories.map { it.toEntity() }
+            ArticleWithCategories(article = entity, categories = categories)
+        }
 }

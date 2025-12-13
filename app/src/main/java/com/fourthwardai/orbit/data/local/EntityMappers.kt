@@ -1,5 +1,6 @@
 package com.fourthwardai.orbit.data.local
 
+import androidx.compose.ui.graphics.toArgb
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.toComposeColor
@@ -53,6 +54,7 @@ fun Category.toEntity(): CategoryEntity = CategoryEntity(
     id = id,
     name = name,
     group = group,
-    colorLight = colorLight.toString(),
-    colorDark = colorDark.toString(),
+    // Persist as hex strings (include alpha) so we can parse them back with toComposeColor()
+    colorLight = String.format("#%08X", colorLight.toArgb()),
+    colorDark = String.format("#%08X", colorDark.toArgb()),
 )

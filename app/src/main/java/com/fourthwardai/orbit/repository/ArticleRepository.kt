@@ -14,11 +14,6 @@ interface ArticleRepository {
     val articles: StateFlow<List<Article>?>
 
     /**
-     * Whether a refresh is in progress.
-     */
-    val isRefreshing: StateFlow<Boolean>
-
-    /**
      * Update the bookmark status of an article.
      */
     suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit>

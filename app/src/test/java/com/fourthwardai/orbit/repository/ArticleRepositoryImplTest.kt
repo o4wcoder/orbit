@@ -119,7 +119,7 @@ class ArticleRepositoryImplTest {
     }
 
     @Test
-    fun `refreshArticles success updates articles and isRefreshing flag toggles`() = runTest {
+    fun `refreshArticles success updates articles`() = runTest {
         val articles = listOf(sampleArticle("a1"))
 
         wireDaoFlow()
@@ -131,13 +131,11 @@ class ArticleRepositoryImplTest {
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
         val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher)
-        assertThat(repo.isRefreshing.value).isFalse()
         val result = repo.refreshArticles()
         // allow background collector on the repository's scope to process the DAO flow
         advanceUntilIdle()
         assertThat(result).isEqualTo(ApiResult.Success(Unit))
         assertThat(repo.articles.value).isEqualTo(articles)
-        assertThat(repo.isRefreshing.value).isFalse()
     }
 
     @Test
