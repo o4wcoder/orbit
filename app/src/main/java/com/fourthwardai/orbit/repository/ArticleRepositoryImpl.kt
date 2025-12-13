@@ -9,6 +9,7 @@ import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,9 +23,13 @@ import javax.inject.Inject
 class ArticleRepositoryImpl @Inject constructor(
     private val service: ArticleService,
     private val articleDao: ArticleDao,
+    /**
+     * Coroutine scope used for background work (collecting DB flows). Tests can inject a TestScope.
+     */
+    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+    /** Dispatchers used for IO-bound work. Tests can inject a TestDispatcher here. */
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ArticleRepository {
-
-    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     private val _articles = MutableStateFlow<List<Article>?>(null)
     override val articles: StateFlow<List<Article>?> = _articles
@@ -43,7 +48,7 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(ioDispatcher) {
         val article = _articles.value?.find { it.id == id } ?: return@withContext ApiResult.Failure(Exception("Article not found") as ApiError)
         val updatedArticle = article.copy(isBookmarked = isBookmarked)
         val updatedArticles = _articles.value?.map { if (it.id == id) updatedArticle else it }
@@ -60,7 +65,7 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun refreshArticles(): ApiResult<Unit> = withContext(Dispatchers.IO) {
+    override suspend fun refreshArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
         _isRefreshing.value = true
         when (val result = service.fetchArticles()) {
             is ApiResult.Success -> {
@@ -72,6 +77,8 @@ class ArticleRepositoryImpl @Inject constructor(
                         ArticleWithCategories(article = entity, categories = categories)
                     }
                     articleDao.replaceAll(awcs)
+                    // Also update in-memory cache immediately so callers (and tests) see new data
+                    _articles.value = result.data
                 } catch (e: Exception) {
                     _isRefreshing.value = false
                     return@withContext ApiResult.Failure(e as ApiError)
@@ -88,7 +95,7 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun getCategories(): ApiResult<List<Category>> = withContext(Dispatchers.IO) {
+    override suspend fun getCategories(): ApiResult<List<Category>> = withContext(ioDispatcher) {
         service.fetchArticleCategories()
     }
 }
