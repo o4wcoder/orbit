@@ -1,12 +1,11 @@
 package com.fourthwardai.orbit.repository
 
 import com.fourthwardai.orbit.data.local.ArticleDao
-import com.fourthwardai.orbit.data.local.ArticleEntity
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
-import com.fourthwardai.orbit.data.local.CategoryEntity
+import com.fourthwardai.orbit.data.local.toDomain
+import com.fourthwardai.orbit.data.local.toEntity
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
-import com.fourthwardai.orbit.domain.toComposeColor
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
@@ -15,11 +14,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.time.Instant
 import javax.inject.Inject
 
 class ArticleRepositoryImpl @Inject constructor(
@@ -95,54 +92,3 @@ class ArticleRepositoryImpl @Inject constructor(
         service.fetchArticleCategories()
     }
 }
-
-// Mapping helpers between Room entities and domain models
-private fun ArticleWithCategories.toDomain(): Article {
-    val articleEntity = this.article
-    return Article(
-        id = articleEntity.id,
-        title = articleEntity.title,
-        url = articleEntity.url,
-        author = articleEntity.author,
-        readTimeMinutes = articleEntity.readTime,
-        heroImageUrl = articleEntity.heroImageUrl,
-        teaser = articleEntity.teaser,
-        source = articleEntity.source,
-        sourceAvatarUrl = articleEntity.sourceAvatarUrl,
-        createdTime = articleEntity.createdTime,
-        ingestedAt = Instant.parse(articleEntity.ingestedAt),
-        categories = this.categories.map { it.toDomain() },
-        isBookmarked = articleEntity.isBookmarked,
-    )
-}
-
-private fun Article.toEntity(): ArticleEntity = ArticleEntity(
-    id = id,
-    createdTime = createdTime,
-    title = title,
-    url = url,
-    author = author,
-    readTime = readTimeMinutes,
-    heroImageUrl = heroImageUrl,
-    teaser = teaser,
-    source = source,
-    sourceAvatarUrl = sourceAvatarUrl,
-    ingestedAt = ingestedAt.toString(),
-    isBookmarked = isBookmarked,
-)
-
-private fun CategoryEntity.toDomain(): Category = Category(
-    id = id,
-    name = name,
-    group = group,
-    colorLight = colorLight.toComposeColor(),
-    colorDark = colorDark.toComposeColor(),
-)
-
-private fun Category.toEntity(): CategoryEntity = CategoryEntity(
-    id = id,
-    name = name,
-    group = group,
-    colorLight = colorLight.toString(),
-    colorDark = colorDark.toString(),
-)
