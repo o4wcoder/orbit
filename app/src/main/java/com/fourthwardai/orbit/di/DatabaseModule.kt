@@ -21,11 +21,10 @@ object DatabaseModule {
         return Room.databaseBuilder(
             context.applicationContext,
             AppDatabase::class.java,
-            "orbit-db"
+            "orbit-db",
         ).build()
     }
 
     @Provides
     fun provideArticleDao(db: AppDatabase): ArticleDao = db.articleDao()
 }
-

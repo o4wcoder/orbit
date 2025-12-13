@@ -5,9 +5,16 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "articles")
 data class ArticleEntity(
-    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    @PrimaryKey val id: String,
+    val createdTime: String,
     val title: String,
-    val content: String,
-    val publishedAt: Long = System.currentTimeMillis(),
+    val url: String,
+    val author: String? = null,
+    val readTime: Int? = null,
+    val heroImageUrl: String? = null,
+    val teaser: String? = null,
+    val source: String,
+    val sourceAvatarUrl: String? = null,
+    val ingestedAt: String,
+    val isBookmarked: Boolean = false,
 )
-

@@ -18,6 +18,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -45,12 +46,12 @@ class NewsFeedViewModel @Inject constructor(
     val uiState: StateFlow<NewsFeedUiModel> =
         _dataState
             .map { dataState ->
-                if (dataState.isLoading) {
-                    NewsFeedUiModel.Loading
-                } else if (dataState.articles.isEmpty()) {
-                    NewsFeedUiModel.Empty
-                } else {
-                    dataState.toContentUiModel()
+                val articles = dataState.articles
+
+                when {
+                    dataState.isLoading || articles == null -> NewsFeedUiModel.Loading
+                    articles.isEmpty() -> NewsFeedUiModel.Empty
+                    else -> dataState.toContentUiModel()
                 }
             }
             .catch {
@@ -67,13 +68,12 @@ class NewsFeedViewModel @Inject constructor(
     init {
         observeArticles()
         loadCategories()
-        refreshArticles()
     }
 
     private fun observeArticles() {
         viewModelScope.launch {
             combine(
-                articleRepository.articles,
+                articleRepository.articles.filterNotNull(),
                 _filter,
             ) { articles, filter ->
                 articles.filter { article ->
@@ -131,23 +131,13 @@ class NewsFeedViewModel @Inject constructor(
 
     fun refreshArticles() {
         viewModelScope.launch {
-            // If it's the very first load, show the big spinner
-            if (dataState.articles.isEmpty()) {
-                showLoadingSpinner()
-            }
             _dataState.update { it.copy(isRefreshing = true) }
 
             val result = articleRepository.refreshArticles()
             result.onFailure { error ->
                 Timber.e("Failed to refresh articles. Error = ${error.message}")
             }
-
             _dataState.update { it.copy(isRefreshing = false) }
-            hideLoadingSpinner()
         }
     }
-
-    private fun showLoadingSpinner() = _dataState.update { it.copy(isLoading = true) }
-
-    private fun hideLoadingSpinner() = _dataState.update { it.copy(isLoading = false) }
 }

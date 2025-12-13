@@ -11,7 +11,7 @@ interface ArticleRepository {
      * All articles currently loaded in memory.
      * ViewModels will filter this based on FeedFilter.
      */
-    val articles: StateFlow<List<Article>>
+    val articles: StateFlow<List<Article>?>
 
     /**
      * Whether a refresh is in progress.

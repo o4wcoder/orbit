@@ -55,7 +55,6 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.extensions.VerticalSpacer
-import com.fourthwardai.orbit.ui.LoadingSpinner
 import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterDialog
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
@@ -155,9 +154,7 @@ private fun NewsFeedContent(
             },
         ) {
             when (val state = uiModel) {
-                is NewsFeedUiModel.Loading -> {
-                    LoadingSpinner()
-                }
+                is NewsFeedUiModel.Loading -> {}
 
                 is NewsFeedUiModel.Content -> {
                     if (widthSizeClass == WindowWidthSizeClass.Compact) {
