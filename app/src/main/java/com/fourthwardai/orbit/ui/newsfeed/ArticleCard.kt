@@ -1,5 +1,8 @@
 package com.fourthwardai.orbit.ui.newsfeed
 
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -31,6 +34,7 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -38,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
@@ -64,6 +69,7 @@ import com.fourthwardai.orbit.ui.util.harmonizeColor
 import com.fourthwardai.orbit.ui.util.sourceAccentColorFromName
 import com.revenuecat.placeholder.PlaceholderDefaults
 import com.revenuecat.placeholder.placeholder
+import kotlinx.coroutines.delay
 import java.time.Instant
 import java.util.Locale
 
@@ -103,10 +109,33 @@ fun ArticleCard(
                         style = MaterialTheme.typography.labelLarge,
                     )
                     Spacer(modifier = Modifier.weight(1f))
+
+                    // Animated bookmark button: small spring "pop" on click
+                    var pressed by remember { mutableStateOf(false) }
+                    val scale by animateFloatAsState(
+                        targetValue = if (pressed) 1.18f else 1f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow,
+                        ),
+                    )
+
+                    LaunchedEffect(pressed) {
+                        if (pressed) {
+                            // keep the popped state briefly then return to normal
+                            delay(260)
+                            pressed = false
+                        }
+                    }
+
                     IconButton(
-                        onClick = { onBookmarkClick(article.id, !article.isBookmarked) },
+                        onClick = {
+                            pressed = true
+                            onBookmarkClick(article.id, !article.isBookmarked)
+                        },
                         modifier = Modifier
                             .size(28.dp)
+                            .scale(scale)
                             .clip(CircleShape),
                     ) {
                         val bookmarkIcon = if (article.isBookmarked) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder
