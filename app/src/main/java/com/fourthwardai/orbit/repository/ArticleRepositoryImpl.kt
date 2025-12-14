@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import javax.inject.Inject
 
 class ArticleRepositoryImpl @Inject constructor(
@@ -27,8 +28,8 @@ class ArticleRepositoryImpl @Inject constructor(
     /**
      * Coroutine scope used for background work (collecting DB flows). Tests can inject a TestScope.
      */
-    private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-    /** Dispatchers used for IO-bound work. Tests can inject a TestDispatcher here. */
+    scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
+    /** Dispatcher used for IO-bound work. Tests can inject a TestDispatcher here. */
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
 ) : ArticleRepository {
 
@@ -39,7 +40,7 @@ class ArticleRepositoryImpl @Inject constructor(
         // Observe DB and keep in-memory state in sync with cached articles
         scope.launch {
             articleDao.getAllWithCategories()
-                .map { awcs -> awcs.map { it.toDomain() } }
+                .map { articleWithCategories -> articleWithCategories.map { it.toDomain() } }
                 .collect { domainArticles ->
                     _articles.value = domainArticles
                 }
@@ -56,15 +57,14 @@ class ArticleRepositoryImpl @Inject constructor(
                     articleDao.replaceAll(articlesWithCategories)
                 }
             } catch (t: Throwable) {
-                // Log but don't crash init; repository will still serve DB-cached articles.
-                // Timber isn't imported in this file; swallow to keep init resilient.
+                Timber.d("CGH: Failed to sync articles from network: $t")
                 ensureActive()
             }
         }
     }
 
     override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(ioDispatcher) {
-        val article = _articles.value?.find { it.id == id } ?: return@withContext ApiResult.Failure(Exception("Article not found") as ApiError)
+        val article = _articles.value?.find { it.id == id } ?: return@withContext ApiResult.Failure(ApiError.Network("Article not found"))
         val updatedArticle = article.copy(isBookmarked = isBookmarked)
         val updatedArticles = _articles.value?.map { if (it.id == id) updatedArticle else it }
         _articles.value = updatedArticles
@@ -90,7 +90,7 @@ class ArticleRepositoryImpl @Inject constructor(
                     // Also update in-memory cache immediately so callers (and tests) see new data
                     _articles.value = result.data
                 } catch (e: Exception) {
-                    return@withContext ApiResult.Failure(e as ApiError)
+                    return@withContext ApiResult.Failure(ApiError.Unknown(e.message ?: "Failed to persist articles"))
                 }
 
                 ApiResult.Success(Unit)
@@ -105,7 +105,6 @@ class ArticleRepositoryImpl @Inject constructor(
         service.fetchArticleCategories()
     }
 
-    // Convert domain Articles -> ArticleWithCategories for DB persistence
     private fun mapArticlesWithCategories(articles: List<Article>): List<ArticleWithCategories> =
         articles.map { article ->
             val entity = article.toEntity()

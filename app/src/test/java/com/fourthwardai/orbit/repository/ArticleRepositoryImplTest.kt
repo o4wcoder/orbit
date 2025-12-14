@@ -14,6 +14,7 @@ import com.fourthwardai.orbit.service.newsfeed.ArticleService
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -22,6 +23,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 import java.time.Instant
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ArticleRepositoryImplTest {
 
     val fakeArticleService = mockk<ArticleService>()
@@ -75,6 +77,7 @@ class ArticleRepositoryImplTest {
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
         val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher)
+        advanceUntilIdle()
 
         // pre-populate articles via refreshArticles
         val refreshResult = repo.refreshArticles()
