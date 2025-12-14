@@ -1,6 +1,7 @@
 package com.fourthwardai.orbit.di
 
 import com.fourthwardai.orbit.BuildConfig
+import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.network.ktorHttpClient
 import com.fourthwardai.orbit.repository.ArticleRepository
 import com.fourthwardai.orbit.repository.ArticleRepositoryImpl
@@ -27,8 +28,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideArticleRepository(service: ArticleService): ArticleRepository =
-        ArticleRepositoryImpl(service = service)
+    fun provideArticleRepository(service: ArticleService, articleDao: ArticleDao): ArticleRepository =
+        ArticleRepositoryImpl(service = service, articleDao)
 
     @Provides
     @Singleton

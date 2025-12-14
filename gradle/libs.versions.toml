@@ -21,6 +21,8 @@ revenuecat = "1.0.2"
 assertk = "0.25"
 mockk = "1.13.9"
 kotlinx-coroutines-test = "1.10.2"
+room = "2.8.0" # Bumped Room to a newer release that supports newer kotlinx-metadata-jvm
+ksp = "2.2.21" # KSP version aligned with Kotlin 2.2.x
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -54,6 +56,11 @@ androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navig
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 revenuecat-placeholder = { group = "com.revenuecat.purchases", name = "placeholder", version.ref = "revenuecat" }
 
+# Room libraries (runtime, ktx, compiler)
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
 # Test libraries
 assertk-jvm = { group = "com.willowtreeapps.assertk", name = "assertk-jvm", version.ref = "assertk" }
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
@@ -66,3 +73,4 @@ kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "ko
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt-plugin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 spotless = { id = "com.diffplug.spotless", version.ref = "spotlessVersion" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
