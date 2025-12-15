@@ -11,6 +11,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
+import kotlinx.coroutines.CoroutineDispatcher
 import okhttp3.OkHttpClient
 import javax.inject.Singleton
 
@@ -28,8 +29,8 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideArticleRepository(service: ArticleService, articleDao: ArticleDao): ArticleRepository =
-        ArticleRepositoryImpl(service = service, articleDao)
+    fun provideArticleRepository(service: ArticleService, articleDao: ArticleDao, @IODispatcher dispatcher: CoroutineDispatcher): ArticleRepository =
+        ArticleRepositoryImpl(service = service, articleDao = articleDao, ioDispatcher = dispatcher)
 
     @Provides
     @Singleton

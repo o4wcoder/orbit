@@ -4,6 +4,7 @@ import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.data.local.toDomain
 import com.fourthwardai.orbit.data.local.toEntity
+import com.fourthwardai.orbit.di.IODispatcher
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiError
@@ -25,12 +26,8 @@ import javax.inject.Inject
 class ArticleRepositoryImpl @Inject constructor(
     private val service: ArticleService,
     private val articleDao: ArticleDao,
-    /**
-     * Coroutine scope used for background work (collecting DB flows). Tests can inject a TestScope.
-     */
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-    /** Dispatcher used for IO-bound work. Tests can inject a TestDispatcher here. */
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
+    @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ArticleRepository {
 
     private val _articles = MutableStateFlow<List<Article>?>(null)
@@ -46,8 +43,6 @@ class ArticleRepositoryImpl @Inject constructor(
                 }
         }
 
-        // Also perform an immediate background sync from the network so the DB is kept up to date.
-        // We don't block emitting the DB flow above — the DB collector will immediately emit cached data.
         scope.launch {
             try {
                 val result = withContext(ioDispatcher) { service.fetchArticles() }
