@@ -1,10 +1,10 @@
 package com.fourthwardai.orbit.repository
 
+import android.content.Context
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
-import android.content.Context
 import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleEntity
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
@@ -14,12 +14,12 @@ import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
 import com.fourthwardai.orbit.work.scheduleArticleSync
+import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
-import io.mockk.just
-import io.mockk.Runs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher

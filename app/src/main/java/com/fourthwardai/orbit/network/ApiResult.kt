@@ -1,5 +1,7 @@
 package com.fourthwardai.orbit.network
 
+import kotlin.compareTo
+
 sealed interface ApiError {
     val message: String
 
@@ -20,6 +22,13 @@ sealed interface ApiError {
         override val message: String,
         val cause: Throwable? = null,
     ) : ApiError
+}
+
+fun ApiError.isTransient(): Boolean = when (this) {
+    is ApiError.Network -> true
+    is ApiError.Http -> code >= 500 || code == 429 // treat 5xx and 429 as transient
+    is ApiError.Parsing -> false
+    is ApiError.Unknown -> true
 }
 
 sealed interface ApiResult<out T> {

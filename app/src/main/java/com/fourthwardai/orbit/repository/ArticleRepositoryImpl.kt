@@ -10,6 +10,7 @@ import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
+import com.fourthwardai.orbit.network.isTransient
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
 import com.fourthwardai.orbit.work.scheduleArticleSync
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -62,14 +63,6 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-    // Classify errors as transient (retryable) vs permanent
-    private fun isTransientError(error: ApiError): Boolean = when (error) {
-        is ApiError.Network -> true
-        is ApiError.Http -> error.code >= 500 // 5xx server errors -> transient; 4xx -> permanent
-        is ApiError.Parsing -> false
-        is ApiError.Unknown -> true // unknown -> treat as transient to be safe
-    }
-
     override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(ioDispatcher) {
         // Persist the change in Room so it's available to the worker later
         val dbArticle = articleDao.getById(id) ?: return@withContext ApiResult.Failure(ApiError.Network("Article not found"))
@@ -89,7 +82,7 @@ class ArticleRepositoryImpl @Inject constructor(
             }
             is ApiResult.Failure -> {
                 Timber.d("Bookmark network failed: ${result.error}")
-                if (isTransientError(result.error)) {
+                if (result.error.isTransient()) {
                     // keep the local dirty flag and schedule background retry
                     scheduleArticleSync(context)
                     ApiResult.Failure(result.error)
@@ -117,19 +110,19 @@ class ArticleRepositoryImpl @Inject constructor(
             dirty.forEach { entity ->
                 val id = entity.id
                 val desiredBookmark = entity.isBookmarked
-                when (val res = service.bookmarkArticle(id, desiredBookmark)) {
+                when (val result = service.bookmarkArticle(id, desiredBookmark)) {
                     is ApiResult.Success -> {
                         // mark as synced
                         articleDao.insert(entity.copy(isDirty = false))
                     }
                     is ApiResult.Failure -> {
-                        Timber.d("Failed to sync article $id: ${res.error}")
-                        if (isTransientError(res.error)) {
+                        Timber.d("Failed to sync article $id: ${result.error}")
+                        if (result.error.isTransient()) {
                             // transient -> ask WorkManager to retry the entire job
-                            return@withContext ApiResult.Failure(res.error)
+                            return@withContext ApiResult.Failure(result.error)
                         } else {
                             // permanent -> mark as not dirty and continue to next item
-                            Timber.d("Permanent failure syncing $id, marking as not dirty: ${res.error}")
+                            Timber.d("Permanent failure syncing $id, marking as not dirty: ${result.error}")
                             articleDao.insert(entity.copy(isDirty = false))
                         }
                     }
