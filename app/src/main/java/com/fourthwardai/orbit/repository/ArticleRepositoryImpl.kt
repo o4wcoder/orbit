@@ -62,6 +62,14 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
+    // Classify errors as transient (retryable) vs permanent
+    private fun isTransientError(error: ApiError): Boolean = when (error) {
+        is ApiError.Network -> true
+        is ApiError.Http -> error.code >= 500 // 5xx server errors -> transient; 4xx -> permanent
+        is ApiError.Parsing -> false
+        is ApiError.Unknown -> true // unknown -> treat as transient to be safe
+    }
+
     override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(ioDispatcher) {
         // Persist the change in Room so it's available to the worker later
         val dbArticle = articleDao.getById(id) ?: return@withContext ApiResult.Failure(ApiError.Network("Article not found"))
@@ -69,8 +77,9 @@ class ArticleRepositoryImpl @Inject constructor(
         articleDao.insert(updatedEntity)
 
         // Also keep optimistic in-memory update for immediate UI feedback
-        val updatedArticle = _articles.value?.find { it.id == id }?.copy(isBookmarked = isBookmarked)
-        _articles.value = _articles.value?.map { if (it.id == id) updatedArticle!! else it }
+        val previousArticle = _articles.value?.find { it.id == id }?.copy()
+        val updatedArticle = previousArticle?.copy(isBookmarked = isBookmarked)
+        _articles.value = _articles.value?.map { if (it.id == id) (updatedArticle ?: it) else it }
 
         when (val result = service.bookmarkArticle(id, isBookmarked)) {
             is ApiResult.Success -> {
@@ -79,9 +88,22 @@ class ArticleRepositoryImpl @Inject constructor(
                 ApiResult.Success(Unit)
             }
             is ApiResult.Failure -> {
-                Timber.d("Bookmark network failed, scheduling sync worker: ${result.error}")
-                scheduleArticleSync(context)
-                ApiResult.Failure(result.error)
+                Timber.d("Bookmark network failed: ${result.error}")
+                if (isTransientError(result.error)) {
+                    // keep the local dirty flag and schedule background retry
+                    scheduleArticleSync(context)
+                    ApiResult.Failure(result.error)
+                } else {
+                    // Permanent failure (e.g., 4xx). Revert local DB state and optimistic UI.
+                    Timber.d("Permanent bookmark failure for $id, reverting local change: ${result.error}")
+                    // Re-insert original DB article (not dirty)
+                    articleDao.insert(dbArticle.copy(isDirty = false))
+                    // rollback in-memory
+                    if (previousArticle != null) {
+                        _articles.value = _articles.value?.map { if (it.id == id) previousArticle else it }
+                    }
+                    ApiResult.Failure(result.error)
+                }
             }
         }
     }
@@ -102,8 +124,14 @@ class ArticleRepositoryImpl @Inject constructor(
                     }
                     is ApiResult.Failure -> {
                         Timber.d("Failed to sync article $id: ${res.error}")
-                        // If any failure occurs, ask WorkManager to retry the entire job
-                        return@withContext ApiResult.Failure(res.error)
+                        if (isTransientError(res.error)) {
+                            // transient -> ask WorkManager to retry the entire job
+                            return@withContext ApiResult.Failure(res.error)
+                        } else {
+                            // permanent -> mark as not dirty and continue to next item
+                            Timber.d("Permanent failure syncing $id, marking as not dirty: ${res.error}")
+                            articleDao.insert(entity.copy(isDirty = false))
+                        }
                     }
                 }
             }

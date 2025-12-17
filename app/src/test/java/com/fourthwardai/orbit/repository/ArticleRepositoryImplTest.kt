@@ -4,16 +4,22 @@ import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
 import assertk.assertions.isTrue
+import android.content.Context
 import com.fourthwardai.orbit.data.local.ArticleDao
+import com.fourthwardai.orbit.data.local.ArticleEntity
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
+import com.fourthwardai.orbit.work.scheduleArticleSync
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.just
+import io.mockk.Runs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -28,6 +34,7 @@ class ArticleRepositoryImplTest {
 
     val fakeArticleService = mockk<ArticleService>()
     val fakeArticleDao = mockk<ArticleDao>()
+    val fakeContext = mockk<Context>(relaxed = true)
 
     private fun sampleCategory(id: String = "c1") = Category(
         id = id,
@@ -61,14 +68,38 @@ class ArticleRepositoryImplTest {
             val arg = args[0] as List<ArticleWithCategories>
             store.value = arg
         }
+        // Allow inserts during tests without side-effects
+        coEvery { fakeArticleDao.insert(any()) } just Runs
         return store
     }
 
     @Test
     fun `bookmarkArticle success updates state and returns success`() = runTest {
+        // Prevent actual WorkManager scheduling during unit tests - mock the generated Kotlin file class
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
         val articles = listOf(sampleArticle("a1", bookmarked = false), sampleArticle("a2"))
 
         wireDaoFlow()
+
+        // Mock getById to return a corresponding ArticleEntity for bookmark handling
+        coEvery { fakeArticleDao.getById("a1") } returns ArticleEntity(
+            id = "a1",
+            createdTime = articles[0].createdTime,
+            title = articles[0].title,
+            url = articles[0].url,
+            author = articles[0].author,
+            readTime = articles[0].readTimeMinutes,
+            heroImageUrl = articles[0].heroImageUrl,
+            teaser = articles[0].teaser,
+            source = articles[0].source,
+            sourceAvatarUrl = articles[0].sourceAvatarUrl,
+            ingestedAt = articles[0].ingestedAt.toString(),
+            isBookmarked = false,
+            isDirty = false,
+            lastModified = 0L,
+        )
 
         coEvery { fakeArticleService.fetchArticles() } returns ApiResult.Success(articles)
         coEvery { fakeArticleService.bookmarkArticle("a1", true) } returns ApiResult.Success(Unit)
@@ -76,7 +107,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         advanceUntilIdle()
 
         // pre-populate articles via refreshArticles
@@ -96,9 +127,31 @@ class ArticleRepositoryImplTest {
 
     @Test
     fun `bookmarkArticle failure rolls back state and returns failure`() = runTest {
+        // Prevent actual WorkManager scheduling during unit tests
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
         val articles = listOf(sampleArticle("a1", bookmarked = false))
 
         wireDaoFlow()
+
+        // Mock getById to return a corresponding ArticleEntity for bookmark handling
+        coEvery { fakeArticleDao.getById("a1") } returns ArticleEntity(
+            id = "a1",
+            createdTime = articles[0].createdTime,
+            title = articles[0].title,
+            url = articles[0].url,
+            author = articles[0].author,
+            readTime = articles[0].readTimeMinutes,
+            heroImageUrl = articles[0].heroImageUrl,
+            teaser = articles[0].teaser,
+            source = articles[0].source,
+            sourceAvatarUrl = articles[0].sourceAvatarUrl,
+            ingestedAt = articles[0].ingestedAt.toString(),
+            isBookmarked = false,
+            isDirty = false,
+            lastModified = 0L,
+        )
 
         coEvery { fakeArticleService.fetchArticles() } returns ApiResult.Success(articles)
         coEvery { fakeArticleService.bookmarkArticle("a1", true) } returns ApiResult.Failure(ApiError.Network("failed"))
@@ -106,7 +159,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         val refreshResult = repo.refreshArticles()
         // allow background collector on the repository's scope to process the DAO flow
         advanceUntilIdle()
@@ -117,12 +170,16 @@ class ArticleRepositoryImplTest {
         // allow IO dispatcher work (bookmark network call & potential rollback) to run
         advanceUntilIdle()
         assertThat(result).isEqualTo(ApiResult.Failure(ApiError.Network("failed")))
-        // should have rolled back
-        assertThat(repo.articles.value!!.first().isBookmarked).isFalse()
+        // For transient errors we keep optimistic local change and schedule background retry
+        assertThat(repo.articles.value!!.first().isBookmarked).isTrue()
     }
 
     @Test
     fun `refreshArticles success updates articles`() = runTest {
+        // Prevent actual WorkManager scheduling during unit tests
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
         val articles = listOf(sampleArticle("a1"))
 
         wireDaoFlow()
@@ -133,7 +190,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         val result = repo.refreshArticles()
         // allow background collector on the repository's scope to process the DAO flow
         advanceUntilIdle()
@@ -143,6 +200,10 @@ class ArticleRepositoryImplTest {
 
     @Test
     fun `getCategories delegates to service`() = runTest {
+        // Prevent actual WorkManager scheduling during unit tests
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
         val categories = listOf(sampleCategory("c1"))
 
         wireDaoFlow()
@@ -153,7 +214,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         val result = repo.getCategories()
         assertThat(result).isEqualTo(ApiResult.Success(categories))
     }
