@@ -9,7 +9,12 @@ import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.toDomain
 import com.fourthwardai.orbit.network.dto.CategoryDto
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
+@Config(sdk = [33])
+@RunWith(RobolectricTestRunner::class)
 class CategoryColorMappingTest {
 
     @Test

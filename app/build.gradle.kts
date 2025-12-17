@@ -43,6 +43,12 @@ android {
         buildConfigField("String", "ARTICLES_ENDPOINT", "\"${localProperties["ARTICLES_ENDPOINT"] ?: ""}\"")
     }
 
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -97,6 +103,9 @@ dependencies {
     testImplementation(libs.assertk.jvm)
     testImplementation(libs.mockk)
     testImplementation(libs.kotlinx.coroutines.test.jvm)
+    // Robolectric for running Android framework-dependent unit tests on the JVM
+    testImplementation("org.robolectric:robolectric:4.11.1")
+    testImplementation("androidx.test:core:1.5.0")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
