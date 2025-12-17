@@ -30,6 +30,13 @@ interface ArticleRepository {
      */
     suspend fun getCategories(): ApiResult<List<Category>>
 
+    /**
+     * Sync any locally-dirty articles (e.g. bookmarks) with the server.
+     * Implementations should return Success when all dirty items are synced,
+     * or Failure when any transient error occurs (worker can retry).
+     */
+    suspend fun syncDirtyArticles(): ApiResult<Unit>
+
     // 🔮 Future (when you add server-side filtering/paging):
     // suspend fun fetchArticlesPage(query: ArticleQuery): ApiResult<ArticlePage>
 }

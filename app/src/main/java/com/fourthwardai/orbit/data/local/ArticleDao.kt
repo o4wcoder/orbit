@@ -56,4 +56,10 @@ interface ArticleDao {
         insertCategories(categories)
         insertCrossRefs(crossRefs)
     }
+
+    @Query("SELECT * FROM articles WHERE isDirty = 1")
+    suspend fun getDirtyArticles(): List<ArticleEntity>
+
+    @Query("SELECT * FROM articles WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): ArticleEntity?
 }

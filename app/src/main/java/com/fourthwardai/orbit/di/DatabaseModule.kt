@@ -22,7 +22,11 @@ object DatabaseModule {
             context.applicationContext,
             AppDatabase::class.java,
             "orbit-db",
-        ).build()
+        )
+            // During development we fall back to destructive migration so schema changes don't crash the app.
+            // For production, add proper Migration objects instead.
+            .fallbackToDestructiveMigration()
+            .build()
     }
 
     @Provides

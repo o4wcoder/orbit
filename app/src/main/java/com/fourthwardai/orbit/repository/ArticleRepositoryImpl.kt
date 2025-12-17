@@ -1,5 +1,6 @@
 package com.fourthwardai.orbit.repository
 
+import android.content.Context
 import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.data.local.toDomain
@@ -10,6 +11,8 @@ import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
+import com.fourthwardai.orbit.work.scheduleArticleSync
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +31,7 @@ class ArticleRepositoryImpl @Inject constructor(
     private val articleDao: ArticleDao,
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
+    @param:ApplicationContext private val context: Context,
 ) : ArticleRepository {
 
     private val _articles = MutableStateFlow<List<Article>?>(null)
@@ -59,36 +63,68 @@ class ArticleRepositoryImpl @Inject constructor(
     }
 
     override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(ioDispatcher) {
-        val article = _articles.value?.find { it.id == id } ?: return@withContext ApiResult.Failure(ApiError.Network("Article not found"))
-        val updatedArticle = article.copy(isBookmarked = isBookmarked)
-        val updatedArticles = _articles.value?.map { if (it.id == id) updatedArticle else it }
-        _articles.value = updatedArticles
+        // Persist the change in Room so it's available to the worker later
+        val dbArticle = articleDao.getById(id) ?: return@withContext ApiResult.Failure(ApiError.Network("Article not found"))
+        val updatedEntity = dbArticle.copy(isBookmarked = isBookmarked, isDirty = true, lastModified = System.currentTimeMillis())
+        articleDao.insert(updatedEntity)
+
+        // Also keep optimistic in-memory update for immediate UI feedback
+        val updatedArticle = _articles.value?.find { it.id == id }?.copy(isBookmarked = isBookmarked)
+        _articles.value = _articles.value?.map { if (it.id == id) updatedArticle!! else it }
 
         when (val result = service.bookmarkArticle(id, isBookmarked)) {
-            is ApiResult.Success -> ApiResult.Success(Unit)
+            is ApiResult.Success -> {
+                // Mark as synced
+                articleDao.insert(updatedEntity.copy(isDirty = false))
+                ApiResult.Success(Unit)
+            }
             is ApiResult.Failure -> {
-                // Rollback local state
-                val rolledBackArticles = _articles.value?.map { if (it.id == id) article else it }
-                _articles.value = rolledBackArticles
+                Timber.d("Bookmark network failed, scheduling sync worker: ${result.error}")
+                scheduleArticleSync(context)
                 ApiResult.Failure(result.error)
             }
+        }
+    }
+
+    override suspend fun syncDirtyArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
+        try {
+            val dirty = articleDao.getDirtyArticles()
+            if (dirty.isEmpty()) return@withContext ApiResult.Success(Unit)
+
+            // Try to sync each dirty article individually; collect failures
+            dirty.forEach { entity ->
+                val id = entity.id
+                val desiredBookmark = entity.isBookmarked
+                when (val res = service.bookmarkArticle(id, desiredBookmark)) {
+                    is ApiResult.Success -> {
+                        // mark as synced
+                        articleDao.insert(entity.copy(isDirty = false))
+                    }
+                    is ApiResult.Failure -> {
+                        Timber.d("Failed to sync article $id: ${res.error}")
+                        // If any failure occurs, ask WorkManager to retry the entire job
+                        return@withContext ApiResult.Failure(res.error)
+                    }
+                }
+            }
+
+            ApiResult.Success(Unit)
+        } catch (e: Exception) {
+            ApiResult.Failure(ApiError.Unknown(e.message ?: "syncDirtyArticles failed"))
         }
     }
 
     override suspend fun refreshArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
         when (val result = service.fetchArticles()) {
             is ApiResult.Success -> {
-                // Persist fetched articles and categories into Room (replace all in a transaction)
                 try {
                     val articlesWithCategories = mapArticlesWithCategories(result.data)
                     articleDao.replaceAll(articlesWithCategories)
-                    // Also update in-memory cache immediately so callers (and tests) see new data
                     _articles.value = result.data
+                    ApiResult.Success(Unit)
                 } catch (e: Exception) {
-                    return@withContext ApiResult.Failure(ApiError.Unknown(e.message ?: "Failed to persist articles"))
+                    ApiResult.Failure(ApiError.Unknown(e.message ?: "Failed to persist articles"))
                 }
-
-                ApiResult.Success(Unit)
             }
             is ApiResult.Failure -> {
                 ApiResult.Failure(result.error)
