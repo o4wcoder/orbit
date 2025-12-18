@@ -65,7 +65,7 @@ class ArticleRepositoryImpl @Inject constructor(
 
     override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(ioDispatcher) {
         // Persist the change in Room so it's available to the worker later
-        val dbArticle = articleDao.getById(id) ?: return@withContext ApiResult.Failure(ApiError.Network("Article not found"))
+        val dbArticle = articleDao.getById(id) ?: return@withContext ApiResult.Failure(ApiError.Unknown("Article not found"))
         val updatedEntity = dbArticle.copy(isBookmarked = isBookmarked, isDirty = true, lastModified = System.currentTimeMillis())
         articleDao.insert(updatedEntity)
 

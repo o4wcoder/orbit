@@ -5,6 +5,7 @@ import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.fourthwardai.orbit.network.ApiResult
+import com.fourthwardai.orbit.network.isTransient
 import com.fourthwardai.orbit.repository.ArticleRepository
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -25,9 +26,14 @@ class ArticleSyncWorker @AssistedInject constructor(
                 Result.success()
             }
             is ApiResult.Failure -> {
-                Timber.d("ArticleSyncWorker: failure = ${result.error}")
-                // Retry for transient network errors; otherwise fail
-                Result.retry()
+                // Retry for transient network errors; otherwise mark success (permanent failure handled by repo)
+                if (result.error.isTransient()) {
+                    Timber.d("ArticleSyncWorker: transient error, requesting retry: ${result.error}")
+                    Result.retry()
+                } else {
+                    Timber.d("ArticleSyncWorker: permanent error, completing work: ${result.error}")
+                    Result.success()
+                }
             }
         }
     }

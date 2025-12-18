@@ -16,6 +16,7 @@ import com.fourthwardai.orbit.service.newsfeed.ArticleService
 import com.fourthwardai.orbit.work.scheduleArticleSync
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -217,5 +218,97 @@ class ArticleRepositoryImplTest {
         val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         val result = repo.getCategories()
         assertThat(result).isEqualTo(ApiResult.Success(categories))
+    }
+
+    @Test
+    fun `syncDirtyArticles returns success when no dirty articles`() = runTest {
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
+        wireDaoFlow()
+        coEvery { fakeArticleDao.getDirtyArticles() } returns emptyList()
+
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val testScope = TestScope(testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+
+        val result = repo.syncDirtyArticles()
+        assertThat(result).isEqualTo(ApiResult.Success(Unit))
+    }
+
+    @Test
+    fun `syncDirtyArticles retries on transient failure and returns failure`() = runTest {
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
+        wireDaoFlow()
+
+        val entity = ArticleEntity(
+            id = "a1",
+            createdTime = "2020-01-01T00:00:00Z",
+            title = "T",
+            url = "u",
+            author = "author",
+            readTime = 1,
+            heroImageUrl = null,
+            teaser = null,
+            source = "src",
+            sourceAvatarUrl = null,
+            ingestedAt = "2020-01-01T00:00:00Z",
+            isBookmarked = true,
+            isDirty = true,
+            lastModified = 0L,
+        )
+
+        coEvery { fakeArticleDao.getDirtyArticles() } returns listOf(entity)
+        coEvery { fakeArticleService.bookmarkArticle(entity.id, entity.isBookmarked) } returns ApiResult.Failure(ApiError.Network("net"))
+
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val testScope = TestScope(testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+
+        val result = repo.syncDirtyArticles()
+        assertThat(result).isEqualTo(ApiResult.Failure(ApiError.Network("net")))
+
+        // transient failure: repository should not mark the item as not-dirty
+        coVerify(exactly = 0) { fakeArticleDao.insert(match { it.id == entity.id && it.isDirty == false }) }
+    }
+
+    @Test
+    fun `syncDirtyArticles marks permanent failures as not dirty and returns success`() = runTest {
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
+        wireDaoFlow()
+
+        val entity = ArticleEntity(
+            id = "a2",
+            createdTime = "2020-01-01T00:00:00Z",
+            title = "T2",
+            url = "u2",
+            author = "author2",
+            readTime = 2,
+            heroImageUrl = null,
+            teaser = null,
+            source = "src2",
+            sourceAvatarUrl = null,
+            ingestedAt = "2020-01-01T00:00:00Z",
+            isBookmarked = false,
+            isDirty = true,
+            lastModified = 0L,
+        )
+
+        coEvery { fakeArticleDao.getDirtyArticles() } returns listOf(entity)
+        coEvery { fakeArticleService.bookmarkArticle(entity.id, entity.isBookmarked) } returns ApiResult.Failure(ApiError.Http(400, "bad"))
+
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val testScope = TestScope(testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+
+        val result = repo.syncDirtyArticles()
+        assertThat(result).isEqualTo(ApiResult.Success(Unit))
+
+        // permanent failure should mark the article as not dirty
+        coVerify(exactly = 1) { fakeArticleDao.insert(match { it.id == entity.id && it.isDirty == false }) }
     }
 }

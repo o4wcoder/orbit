@@ -1,7 +1,5 @@
 package com.fourthwardai.orbit.network
 
-import kotlin.compareTo
-
 sealed interface ApiError {
     val message: String
 
