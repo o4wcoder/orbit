@@ -99,6 +99,13 @@ dependencies {
     kapt(libs.room.compiler)
 
     kapt(libs.hilt.compiler)
+
+    // WorkManager and Hilt Work
+    implementation(libs.androidx.work.runtime.ktx)
+    implementation(libs.androidx.hilt.work)
+    kapt(libs.androidx.hilt.compiler)
+    testImplementation(libs.androidx.work.testing)
+
     testImplementation(libs.junit)
     testImplementation(libs.assertk.jvm)
     testImplementation(libs.mockk)

@@ -40,6 +40,9 @@ fun Article.toEntity(): ArticleEntity = ArticleEntity(
     sourceAvatarUrl = sourceAvatarUrl,
     ingestedAt = ingestedAt.toString(),
     isBookmarked = isBookmarked,
+    // Articles mapped from domain/network are not dirty by default
+    isDirty = false,
+    lastModified = 0L,
 )
 
 fun CategoryEntity.toDomain(): Category = Category(

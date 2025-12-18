@@ -22,6 +22,13 @@ sealed interface ApiError {
     ) : ApiError
 }
 
+fun ApiError.isTransient(): Boolean = when (this) {
+    is ApiError.Network -> true
+    is ApiError.Http -> code >= 500 || code == 429 // treat 5xx and 429 as transient
+    is ApiError.Parsing -> false
+    is ApiError.Unknown -> true
+}
+
 sealed interface ApiResult<out T> {
     data class Success<T>(val data: T) : ApiResult<T>
     data class Failure(val error: ApiError) : ApiResult<Nothing>
