@@ -41,6 +41,7 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeed
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import com.fourthwardai.orbit.ui.trends.Trends
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
     object News : Screen("news", R.string.news_tab, Icons.Filled.Article)
@@ -117,14 +118,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 )
             }
             composable(Screen.Trends.route) {
-                // Empty placeholder for Trends
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = stringResource(R.string.trends_tab_placeholder),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(16.dp).align(Alignment.Center),
-                    )
-                }
+                Trends(onConfirm = {})
             }
             composable(Screen.Settings.route) {
                 // Empty placeholder for Settings
