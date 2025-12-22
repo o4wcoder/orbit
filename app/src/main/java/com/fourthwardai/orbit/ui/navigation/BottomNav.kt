@@ -1,7 +1,9 @@
 package com.fourthwardai.orbit.ui.navigation
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
@@ -22,6 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,6 +44,7 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeed
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import com.fourthwardai.orbit.ui.trends.AddTrendFAB
 import com.fourthwardai.orbit.ui.trends.Trends
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
@@ -61,75 +65,89 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-
+    var isAddTrendFabExpanded by rememberSaveable { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
 
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = {
-                    Text(
-                        text = stringResource(R.string.app_name),
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                },
-
-                actions = {
-                    if (currentRoute == Screen.News.route) {
-                        IconButton(onClick = { showFilters = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.FilterList,
-                                contentDescription = stringResource(R.string.filters_title),
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainer,
-                ),
-            )
-        },
-        bottomBar = {
-            BottomBar(navController = navController)
-        },
-    ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.News.route,
-            modifier = Modifier.padding(innerPadding),
-        ) {
-            composable(Screen.News.route) {
-                val viewModel: NewsFeedViewModel = hiltViewModel()
-                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-                NewsFeed(
-                    uiModel = uiState,
-                    onRefresh = viewModel::refreshArticles,
-                    showFilters = showFilters,
-                    filters = viewModel.filter.collectAsStateWithLifecycle().value,
-                    onDismissFilters = { showFilters = false },
-                    onApply = { groups, categoryIds, bookmarkedOnly ->
-                        viewModel.onFiltersApplied(groups, categoryIds, bookmarkedOnly)
-                        showFilters = false
+    Box(modifier = Modifier.fillMaxSize()) {
+        var scaffoldPadding by remember { mutableStateOf(PaddingValues()) }
+        Scaffold(
+            modifier = modifier,
+            topBar = {
+                CenterAlignedTopAppBar(
+                    title = {
+                        Text(
+                            text = stringResource(R.string.app_name),
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
                     },
-                    onBookmarkClick = viewModel::onBookmarkClick,
-                    categories = viewModel.categories.collectAsStateWithLifecycle().value,
-                    modifier = Modifier.fillMaxSize(),
+
+                    actions = {
+                        if (currentRoute == Screen.News.route) {
+                            IconButton(onClick = { showFilters = true }) {
+                                Icon(
+                                    imageVector = Icons.Filled.FilterList,
+                                    contentDescription = stringResource(R.string.filters_title),
+                                )
+                            }
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    ),
                 )
-            }
-            composable(Screen.Trends.route) {
-                Trends(onConfirm = {})
-            }
-            composable(Screen.Settings.route) {
-                // Empty placeholder for Settings
-                Box(modifier = Modifier.fillMaxSize()) {
-                    Text(
-                        text = stringResource(R.string.settings_tab_placeholder),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.padding(16.dp).align(Alignment.Center),
+            },
+            bottomBar = {
+                BottomBar(navController = navController)
+            },
+        ) { innerPadding ->
+            scaffoldPadding = innerPadding
+            NavHost(
+                navController = navController,
+                startDestination = Screen.News.route,
+                modifier = Modifier.padding(innerPadding),
+            ) {
+                composable(Screen.News.route) {
+                    val viewModel: NewsFeedViewModel = hiltViewModel()
+                    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                    NewsFeed(
+                        uiModel = uiState,
+                        onRefresh = viewModel::refreshArticles,
+                        showFilters = showFilters,
+                        filters = viewModel.filter.collectAsStateWithLifecycle().value,
+                        onDismissFilters = { showFilters = false },
+                        onApply = { groups, categoryIds, bookmarkedOnly ->
+                            viewModel.onFiltersApplied(groups, categoryIds, bookmarkedOnly)
+                            showFilters = false
+                        },
+                        onBookmarkClick = viewModel::onBookmarkClick,
+                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
+                        modifier = Modifier.fillMaxSize(),
                     )
                 }
+                composable(Screen.Trends.route) {
+                    Trends()
+                }
+                composable(Screen.Settings.route) {
+                    // Empty placeholder for Settings
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        Text(
+                            text = stringResource(R.string.settings_tab_placeholder),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.padding(16.dp).align(Alignment.Center),
+                        )
+                    }
+                }
             }
+        }
+
+        if (currentRoute == Screen.Trends.route) {
+            AddTrendFAB(
+                modifier = Modifier.navigationBarsPadding(),
+                innerPadding = scaffoldPadding,
+                expanded = isAddTrendFabExpanded,
+                onExpandedChanged = { isAddTrendFabExpanded = it },
+                onConfirm = { },
+            )
         }
     }
 }
