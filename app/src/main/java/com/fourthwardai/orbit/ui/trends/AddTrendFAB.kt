@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -51,7 +50,26 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.fourthwardai.orbit.R
+import com.fourthwardai.orbit.extensions.HorizontalSpacer
+import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+
+/*
+ * Floating action button to add a new tred. This FAB morphs into a container
+ * where the user will enter there trend research query.
+ *
+ * Animation sequencing (Material container transform style):
+ *
+ * 1) Container morphs first (size, shape, color) — establishes structure
+ *    Duration: ~320ms, FastOutSlowInEasing
+ *
+ * 2) FAB icon fades out early (~120ms) so the action identity disappears quickly
+ *
+ * 3) Expanded content fades in after ~180ms (~60% of container expansion),
+ *    preventing content from appearing inside a still-circular FAB
+ *
+ * Result: FAB visually becomes a surface, then reveals content.
+ */
 
 @Composable
 fun AddTrendFAB(
@@ -67,7 +85,6 @@ fun AddTrendFAB(
     onExpandedChanged: (Boolean) -> Unit,
     onConfirm: (String) -> Unit,
 ) {
-    // var expanded by rememberSaveable { mutableStateOf(isExpandedDefault) }
     var query by rememberSaveable { mutableStateOf("") }
 
     BackHandler(enabled = expanded) {
@@ -121,16 +138,6 @@ fun AddTrendFAB(
             label = "contentColor",
         )
 
-        val contentAlpha by animateFloatAsState(
-            targetValue = if (expanded) 1f else 0f,
-            animationSpec = tween(
-                durationMillis = 140,
-                delayMillis = if (expanded) 180 else 0,
-                easing = FastOutSlowInEasing,
-            ),
-            label = "contentAlpha",
-        )
-
         // Scrim + outside tap to dismiss
         if (scrimAlpha > 0f) {
             Box(
@@ -146,7 +153,7 @@ fun AddTrendFAB(
             )
         }
 
-        val bottomOffset = innerPadding.calculateBottomPadding()
+        val bottomOffset = innerPadding.calculateBottomPadding() + 16.dp
         // The morphing Surface anchored bottom-right
         Surface(
             color = containerColor,
@@ -174,73 +181,106 @@ fun AddTrendFAB(
                 label = "contentCrossfade",
             ) { isExpanded ->
                 if (!isExpanded) {
-                    // Collapsed: Simple floating action button
-                    Box(
-                        Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = "Add",
-                        )
-                    }
+                    CollapsedFAB()
                 } else {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(16.dp)
-                            .graphicsLayer { alpha = contentAlpha },
-                        verticalArrangement = Arrangement.SpaceBetween,
-                    ) {
-                        Text(
-                            text = stringResource(R.string.trends_query_label),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-
-                        Spacer(Modifier.height(8.dp))
-
-                        OutlinedTextField(
-                            value = query,
-                            onValueChange = { query = it },
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            singleLine = false,
-                            minLines = 4,
-                            placeholder = { Text(text = stringResource(R.string.trends_query_hint)) },
-                            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                            keyboardActions = KeyboardActions(
-                                onDone = {
-                                    onConfirm(query)
-                                    onExpandedChanged(false)
-                                },
-                            ),
-                        )
-
-                        Spacer(Modifier.height(12.dp))
-
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                        ) {
-                            TextButton(
-                                onClick = {
-                                    onExpandedChanged(false)
-                                },
-                            ) { Text(stringResource(R.string.trends_cancel)) }
-
-                            Spacer(Modifier.width(8.dp))
-
-                            Button(
-                                onClick = {
-                                    onConfirm(query)
-                                    onExpandedChanged(false)
-                                },
-                                enabled = query.isNotBlank(),
-                            ) { Text(stringResource(R.string.trends_research)) }
-                        }
-                    }
+                    ExpandedFAB(
+                        query = query,
+                        expanded = expanded,
+                        onConfirm = onConfirm,
+                        onQueryChange = { query = it },
+                        onExpandedChanged = onExpandedChanged,
+                    )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun CollapsedFAB(modifier: Modifier = Modifier) {
+    Box(
+        modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = "Add",
+        )
+    }
+}
+
+@Composable
+fun ExpandedFAB(
+    query: String,
+    expanded: Boolean,
+    onConfirm: (String) -> Unit,
+    onQueryChange: (String) -> Unit,
+    onExpandedChanged: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val contentAlpha by animateFloatAsState(
+        targetValue = if (expanded) 1f else 0f,
+        animationSpec = tween(
+            durationMillis = 140,
+            delayMillis = if (expanded) 180 else 0,
+            easing = FastOutSlowInEasing,
+        ),
+        label = "contentAlpha",
+    )
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp)
+            .graphicsLayer { alpha = contentAlpha },
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(
+            text = stringResource(R.string.trends_query_label),
+            style = MaterialTheme.typography.titleMedium,
+        )
+
+        VerticalSpacer(8.dp)
+
+        OutlinedTextField(
+            value = query,
+            onValueChange = { onQueryChange(it) },
+            modifier = Modifier
+                .fillMaxWidth(),
+            singleLine = false,
+            minLines = 4,
+            placeholder = { Text(text = stringResource(R.string.trends_query_hint)) },
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    onConfirm(query)
+                    onExpandedChanged(false)
+                },
+            ),
+            shape = RoundedCornerShape(16.dp),
+        )
+
+        VerticalSpacer(12.dp)
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(
+                onClick = {
+                    onExpandedChanged(false)
+                },
+            ) { Text(stringResource(R.string.trends_cancel)) }
+
+            HorizontalSpacer(8.dp)
+
+            Button(
+                onClick = {
+                    onConfirm(query)
+                    onExpandedChanged(false)
+                },
+                enabled = query.isNotBlank(),
+            ) { Text(stringResource(R.string.trends_research)) }
         }
     }
 }

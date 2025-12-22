@@ -3,7 +3,6 @@ package com.fourthwardai.orbit.ui.navigation
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
@@ -142,7 +141,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
 
         if (currentRoute == Screen.Trends.route) {
             AddTrendFAB(
-                modifier = Modifier.navigationBarsPadding(),
+                //   modifier = Modifier.navigationBarsPadding(),
                 innerPadding = scaffoldPadding,
                 expanded = isAddTrendFabExpanded,
                 onExpandedChanged = { isAddTrendFabExpanded = it },
