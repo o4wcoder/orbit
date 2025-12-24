@@ -6,7 +6,6 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "articles")
 data class ArticleEntity(
     @PrimaryKey val id: String,
-    val createdTime: String,
     val title: String,
     val url: String,
     val author: String? = null,
