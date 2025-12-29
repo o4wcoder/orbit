@@ -359,7 +359,6 @@ internal fun getArticlePreviewData(id: String) =
         source = "Example Blog",
         sourceAvatarUrl = null,
         teaser = "This is a really cool article about Kotlin in Android Development",
-        createdTime = "2023-07-10T12:00:00Z",
         ingestedAt = Instant.parse("2023-07-10T12:00:00Z"),
         categories = listOf(
             Category(

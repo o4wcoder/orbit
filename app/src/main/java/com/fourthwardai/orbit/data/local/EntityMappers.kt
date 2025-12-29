@@ -20,7 +20,6 @@ fun ArticleWithCategories.toDomain(): Article {
         teaser = articleEntity.teaser,
         source = articleEntity.source,
         sourceAvatarUrl = articleEntity.sourceAvatarUrl,
-        createdTime = articleEntity.createdTime,
         ingestedAt = Instant.parse(articleEntity.ingestedAt),
         categories = this.categories.map { it.toDomain() },
         isBookmarked = articleEntity.isBookmarked,
@@ -29,7 +28,6 @@ fun ArticleWithCategories.toDomain(): Article {
 
 fun Article.toEntity(): ArticleEntity = ArticleEntity(
     id = id,
-    createdTime = createdTime,
     title = title,
     url = url,
     author = author,

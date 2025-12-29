@@ -16,7 +16,6 @@ data class Article(
     val teaser: String?,
     val source: String,
     val sourceAvatarUrl: String?,
-    val createdTime: String,
     val ingestedAt: Instant,
     val categories: List<Category>,
     val isBookmarked: Boolean,
@@ -33,7 +32,6 @@ fun ArticleDto.toDomain(): Article =
         teaser = teaser,
         source = source,
         sourceAvatarUrl = sourceAvatarUrl,
-        createdTime = createdTime,
         ingestedAt = Instant.parse(ingestedAt),
         categories = categories.map { category ->
             Category(
