@@ -1,6 +1,5 @@
 package com.fourthwardai.orbit.ui
 
-import androidx.lifecycle.viewModelScope
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.onFailure
