@@ -38,7 +38,7 @@ fun ActiveFiltersBar(
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
-        visible = filters.hasActiveFilters,
+        visible = filters.hasUserSelectedFilters,
         modifier = modifier,
     ) {
         val isDark = isSystemInDarkTheme()
@@ -79,16 +79,6 @@ fun ActiveFiltersBar(
                             onRemove = {
                                 val newCategoryIds = filters.selectedCategoryIds - category.id
                                 onApply(filters.selectedGroups, newCategoryIds, filters.bookmarkedOnly)
-                            },
-                        )
-                    }
-                }
-                // Bookmarked filter
-                if (filters.bookmarkedOnly) {
-                    item {
-                        BookmarkFilterChip(
-                            onRemove = {
-                                onApply(filters.selectedGroups, filters.selectedCategoryIds, false)
                             },
                         )
                     }
@@ -165,36 +155,6 @@ private fun CategoryFilterChip(
             )
         },
         colors = colors,
-        modifier = modifier,
-    )
-}
-
-@Composable
-private fun BookmarkFilterChip(
-    onRemove: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val bookmarkChipColors = FilterChipDefaults.filterChipColors(
-        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        selectedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        labelColor = MaterialTheme.colorScheme.primary,
-        selectedLabelColor = MaterialTheme.colorScheme.primary,
-        iconColor = MaterialTheme.colorScheme.primary,
-        selectedLeadingIconColor = MaterialTheme.colorScheme.primary,
-    )
-
-    FilterChip(
-        selected = true,
-        onClick = onRemove,
-        label = { Text(stringResource(R.string.filters_bookmarked)) },
-        trailingIcon = {
-            Icon(
-                imageVector = Icons.Filled.Close,
-                contentDescription = stringResource(R.string.filters_remove_description),
-                modifier = Modifier.padding(start = 4.dp),
-            )
-        },
-        colors = bookmarkChipColors,
         modifier = modifier,
     )
 }

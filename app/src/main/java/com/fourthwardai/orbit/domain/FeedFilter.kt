@@ -5,6 +5,6 @@ data class FeedFilter(
     val selectedCategoryIds: Set<String> = emptySet(),
     val bookmarkedOnly: Boolean = false,
 ) {
-    val hasActiveFilters =
-        selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty() || bookmarkedOnly
+    val hasUserSelectedFilters =
+        selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty()
 }
