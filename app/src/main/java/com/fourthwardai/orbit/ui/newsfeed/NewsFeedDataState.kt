@@ -4,7 +4,7 @@ import com.fourthwardai.orbit.domain.Article
 
 data class NewsFeedDataState(
     val articles: List<Article>? = null,
-    val isLoading: Boolean = false,
+    // val isLoading: Boolean = false,
     val isRefreshing: Boolean = false,
 )
 

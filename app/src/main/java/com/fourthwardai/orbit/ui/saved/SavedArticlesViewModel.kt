@@ -1,4 +1,4 @@
-package com.fourthwardai.orbit.ui.newsfeed
+package com.fourthwardai.orbit.ui.saved
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -8,14 +8,14 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class NewsFeedViewModel @Inject constructor(
+class SavedArticlesViewModel @Inject constructor(
     private val articleRepository: ArticleRepository,
 ) : ViewModel() {
 
     private val delegate = ArticleListViewModelDelegate(
         articleRepository = articleRepository,
         viewModelScope = viewModelScope,
-        bookmarkedOnlyDefault = false,
+        bookmarkedOnlyDefault = true,
     )
 
     val categories = delegate.categories
@@ -28,9 +28,5 @@ class NewsFeedViewModel @Inject constructor(
 
     fun onBookmarkClick(id: String, isBookmarked: Boolean) {
         delegate.bookmarkArticle(id, isBookmarked)
-    }
-
-    fun refreshArticles() {
-        delegate.refreshArticles()
     }
 }

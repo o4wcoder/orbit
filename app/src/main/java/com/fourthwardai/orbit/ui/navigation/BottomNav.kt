@@ -1,14 +1,13 @@
 package com.fourthwardai.orbit.ui.navigation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Article
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,21 +38,20 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fourthwardai.orbit.R
-import com.fourthwardai.orbit.ui.newsfeed.NewsFeed
+import com.fourthwardai.orbit.ui.newsfeed.ArticleFeed
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
+import com.fourthwardai.orbit.ui.saved.SavedArticlesViewModel
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
-import com.fourthwardai.orbit.ui.trends.AddTrendFAB
-import com.fourthwardai.orbit.ui.trends.Trends
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
     object News : Screen("news", R.string.news_tab, Icons.Filled.Article)
-    object Trends : Screen("trends", R.string.trends_tab, Icons.Filled.TrendingUp)
+    object Saved : Screen("saved", R.string.saved_tab, Icons.Filled.Bookmark)
     object Settings : Screen("settings", R.string.settings_tab, Icons.Filled.Settings)
 }
 
 private val bottomNavItems = listOf(
     Screen.News,
-    Screen.Trends,
+    Screen.Saved,
     Screen.Settings,
 )
 
@@ -64,11 +61,9 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    var isAddTrendFabExpanded by rememberSaveable { mutableStateOf(false) }
     var showFilters by remember { mutableStateOf(false) }
 
     Box(modifier = Modifier.fillMaxSize()) {
-        var scaffoldPadding by remember { mutableStateOf(PaddingValues()) }
         Scaffold(
             modifier = modifier,
             topBar = {
@@ -81,7 +76,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     },
 
                     actions = {
-                        if (currentRoute == Screen.News.route) {
+                        if (currentRoute == Screen.News.route || currentRoute == Screen.Saved.route) {
                             IconButton(onClick = { showFilters = true }) {
                                 Icon(
                                     imageVector = Icons.Filled.FilterList,
@@ -99,7 +94,6 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 BottomBar(navController = navController)
             },
         ) { innerPadding ->
-            scaffoldPadding = innerPadding
             NavHost(
                 navController = navController,
                 startDestination = Screen.News.route,
@@ -108,14 +102,14 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 composable(Screen.News.route) {
                     val viewModel: NewsFeedViewModel = hiltViewModel()
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-                    NewsFeed(
+                    ArticleFeed(
                         uiModel = uiState,
                         onRefresh = viewModel::refreshArticles,
                         showFilters = showFilters,
                         filters = viewModel.filter.collectAsStateWithLifecycle().value,
                         onDismissFilters = { showFilters = false },
-                        onApply = { groups, categoryIds, bookmarkedOnly ->
-                            viewModel.onFiltersApplied(groups, categoryIds, bookmarkedOnly)
+                        onApply = { groups, categoryIds ->
+                            viewModel.onFiltersApplied(groups, categoryIds)
                             showFilters = false
                         },
                         onBookmarkClick = viewModel::onBookmarkClick,
@@ -123,8 +117,23 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         modifier = Modifier.fillMaxSize(),
                     )
                 }
-                composable(Screen.Trends.route) {
-                    Trends()
+                composable(Screen.Saved.route) {
+                    val viewModel: SavedArticlesViewModel = hiltViewModel()
+                    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                    ArticleFeed(
+                        uiModel = uiState,
+                        isRefreshEnabled = false,
+                        onRefresh = {},
+                        showFilters = showFilters,
+                        filters = viewModel.filter.collectAsStateWithLifecycle().value,
+                        onDismissFilters = { showFilters = false },
+                        onApply = { groups, categoryIds ->
+                            viewModel.onFiltersApplied(groups, categoryIds)
+                            showFilters = false
+                        },
+                        onBookmarkClick = viewModel::onBookmarkClick,
+                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
+                    )
                 }
                 composable(Screen.Settings.route) {
                     // Empty placeholder for Settings
@@ -137,16 +146,6 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     }
                 }
             }
-        }
-
-        if (currentRoute == Screen.Trends.route) {
-            AddTrendFAB(
-                //   modifier = Modifier.navigationBarsPadding(),
-                innerPadding = scaffoldPadding,
-                expanded = isAddTrendFabExpanded,
-                onExpandedChanged = { isAddTrendFabExpanded = it },
-                onConfirm = { },
-            )
         }
     }
 }

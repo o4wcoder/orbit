@@ -1,6 +1,5 @@
 package com.fourthwardai.orbit.ui.categoryfilter
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,7 +14,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.outlined.Bookmark
 import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -56,14 +54,12 @@ fun CategoryFilterDialog(
     categories: List<Category>,
     initialSelectedGroups: Set<String> = emptySet(),
     initialSelectedCategoryIds: Set<String> = emptySet(),
-    initialBookmarkedOnly: Boolean = false,
-    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>, bookmarkedOnly: Boolean) -> Unit,
+    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
     // Local state inside dialog (hoisted out via onApply)
     var selectedGroups by remember { mutableStateOf(initialSelectedGroups) }
     var selectedCategoryIds by remember { mutableStateOf(initialSelectedCategoryIds) }
-    var bookmarkedOnly by remember { mutableStateOf(initialBookmarkedOnly) }
 
     // All distinct groups from category list
     val allGroups: List<String> = remember(categories) {
@@ -79,7 +75,7 @@ fun CategoryFilterDialog(
         }
     }
 
-    val hasAnySelection = selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty() || bookmarkedOnly
+    val hasAnySelection = selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty()
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -107,7 +103,6 @@ fun CategoryFilterDialog(
                                 onClick = {
                                     selectedGroups = emptySet()
                                     selectedCategoryIds = emptySet()
-                                    bookmarkedOnly = false
                                 },
                             ) {
                                 Text(stringResource(R.string.filters_clear_all))
@@ -122,7 +117,7 @@ fun CategoryFilterDialog(
                         Spacer(modifier = Modifier.weight(1f))
                         Button(
                             onClick = {
-                                onApply(selectedGroups, selectedCategoryIds, bookmarkedOnly)
+                                onApply(selectedGroups, selectedCategoryIds)
                             },
                         ) {
                             Text(stringResource(R.string.filters_apply))
@@ -138,7 +133,6 @@ fun CategoryFilterDialog(
                     visibleCategories = visibleCategories,
                     selectedGroups = selectedGroups,
                     selectedCategoryIds = selectedCategoryIds,
-                    bookmarkedOnly = bookmarkedOnly,
                     onGroupToggled = { group ->
                         selectedGroups = if (group in selectedGroups) {
                             selectedGroups - group
@@ -153,9 +147,6 @@ fun CategoryFilterDialog(
                             selectedCategoryIds + categoryId
                         }
                     },
-                    onBookmarkedOnlyToggled = {
-                        bookmarkedOnly = !bookmarkedOnly
-                    },
                 )
             }
         }
@@ -169,10 +160,8 @@ private fun FilterContent(
     visibleCategories: List<Category>,
     selectedGroups: Set<String>,
     selectedCategoryIds: Set<String>,
-    bookmarkedOnly: Boolean,
     onGroupToggled: (String) -> Unit,
     onCategoryToggled: (String) -> Unit,
-    onBookmarkedOnlyToggled: () -> Unit,
 ) {
     Column(
         modifier = modifier
@@ -202,30 +191,6 @@ private fun FilterContent(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        Text(
-            text = stringResource(R.string.filters_saved_title),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        )
-
-        VerticalSpacer(8.dp)
-
-        ListItem(
-            headlineContent = { Text(stringResource(R.string.filters_saved_bookmarked_only)) },
-            supportingContent = { Text(stringResource(R.string.filters_saved_description)) },
-            leadingContent = {
-                Checkbox(checked = bookmarkedOnly, onCheckedChange = { onBookmarkedOnlyToggled() })
-            },
-            trailingContent = {
-                Icon(imageVector = Icons.Outlined.Bookmark, contentDescription = null)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { onBookmarkedOnlyToggled() },
-        )
-
-        HorizontalDivider()
-
-        Spacer(modifier = Modifier.height(24.dp))
         Text(
             text = stringResource(R.string.filters_category_title),
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -308,7 +273,7 @@ fun CategoryFilterDialogPreview() {
     OrbitTheme {
         CategoryFilterDialog(
             categories = sample,
-            onApply = { groups, categories, bookmarkedOnly ->
+            onApply = { groups, categories ->
                 // TODO: send to ViewModel
                 println("Selected groups: $groups, categories: $categories")
             },
