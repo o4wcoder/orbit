@@ -3,7 +3,7 @@
 **Orbit** is a personal news and newsletter aggregation app for Android.  
 It brings newsletters, long-form articles, and curated content into a single, fast, modern reading experience — built with Jetpack Compose and Material 3.
 
-The app is backed by an automated ingestion pipeline that parses newsletters and normalizes them into a unified feed.
+The app is backed by an automated ingestion pipeline that parses newsletters from your Gmail inbox that contain the "Orbit-Newsletter" label and normalizes them into a unified feed.
 
 ---
 
