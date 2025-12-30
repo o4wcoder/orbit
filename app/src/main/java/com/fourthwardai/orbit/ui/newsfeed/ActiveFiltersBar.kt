@@ -34,7 +34,7 @@ import com.fourthwardai.orbit.ui.theme.OrbitTheme
 fun ActiveFiltersBar(
     categories: List<Category>,
     filters: FeedFilter,
-    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>, bookmarkedOnly: Boolean) -> Unit,
+    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     AnimatedVisibility(
@@ -64,7 +64,7 @@ fun ActiveFiltersBar(
                         label = groupName,
                         onRemove = {
                             val newGroups = filters.selectedGroups - groupName
-                            onApply(newGroups, filters.selectedCategoryIds, filters.bookmarkedOnly)
+                            onApply(newGroups, filters.selectedCategoryIds)
                         },
                     )
                 }
@@ -78,7 +78,7 @@ fun ActiveFiltersBar(
                             isDarkTheme = isDark,
                             onRemove = {
                                 val newCategoryIds = filters.selectedCategoryIds - category.id
-                                onApply(filters.selectedGroups, newCategoryIds, filters.bookmarkedOnly)
+                                onApply(filters.selectedGroups, newCategoryIds)
                             },
                         )
                     }
@@ -202,7 +202,7 @@ fun ActiveFiltersBarPreview() {
         ActiveFiltersBar(
             categories = sampleCategories,
             filters = sampleFilters,
-            onApply = { _, _, _ -> },
+            onApply = { _, _ -> },
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.background),

@@ -91,13 +91,8 @@ class ArticleListViewModelDelegate(
     fun applyFilters(
         selectedGroups: Set<String>,
         selectedCategoryIds: Set<String>,
-        bookmarkedOnly: Boolean,
     ) {
-        _filter.value = FeedFilter(
-            selectedGroups = selectedGroups,
-            selectedCategoryIds = selectedCategoryIds,
-            bookmarkedOnly = bookmarkedOnly,
-        )
+        _filter.update { it.copy(selectedGroups = selectedGroups, selectedCategoryIds = selectedCategoryIds) }
     }
 
     fun bookmarkArticle(id: String, isBookmarked: Boolean) {

@@ -70,7 +70,7 @@ fun ArticleFeed(
     filters: FeedFilter,
     onRefresh: () -> Unit,
     onDismissFilters: () -> Unit,
-    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>, bookmarkedOnly: Boolean) -> Unit,
+    onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
     isRefreshEnabled: Boolean = true,
@@ -107,7 +107,6 @@ fun ArticleFeed(
             categories = categories,
             initialSelectedGroups = filters.selectedGroups,
             initialSelectedCategoryIds = filters.selectedCategoryIds,
-            initialBookmarkedOnly = filters.bookmarkedOnly,
             onApply = onApply,
             onDismiss = onDismissFilters,
         )

@@ -23,8 +23,8 @@ class SavedArticlesViewModel @Inject constructor(
     val filter = delegate.filter
     val uiState = delegate.uiState
 
-    fun onFiltersApplied(selectedGroups: Set<String>, selectedCategoryIds: Set<String>, bookmarkedOnly: Boolean) {
-        delegate.applyFilters(selectedGroups, selectedCategoryIds, bookmarkedOnly)
+    fun onFiltersApplied(selectedGroups: Set<String>, selectedCategoryIds: Set<String>) {
+        delegate.applyFilters(selectedGroups, selectedCategoryIds)
     }
 
     fun onBookmarkClick(id: String, isBookmarked: Boolean) {
