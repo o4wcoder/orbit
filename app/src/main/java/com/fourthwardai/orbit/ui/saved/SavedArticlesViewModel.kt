@@ -1,36 +1,28 @@
-package com.fourthwardai.orbit.ui.newsfeed
+package com.fourthwardai.orbit.ui.saved
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.fourthwardai.orbit.di.IODispatcher
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.onFailure
 import com.fourthwardai.orbit.network.onSuccess
 import com.fourthwardai.orbit.repository.ArticleRepository
+import com.fourthwardai.orbit.ui.newsfeed.NewsFeedUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.filterNotNull
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import timber.log.Timber
 import javax.inject.Inject
 
 @HiltViewModel
-class NewsFeedViewModel @Inject constructor(
+class SavedArticlesViewModel @Inject constructor(
     private val articleRepository: ArticleRepository,
-    @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     private val _categories = MutableStateFlow(emptyList<Category>())
@@ -39,44 +31,21 @@ class NewsFeedViewModel @Inject constructor(
     private val _filter = MutableStateFlow(FeedFilter())
     val filter = _filter.asStateFlow()
 
-    private val _dataState = MutableStateFlow(NewsFeedDataState())
-    private val dataState
-        get() = _dataState.value
-
-    val uiState: StateFlow<NewsFeedUiModel> =
-        _dataState
-            .map { dataState ->
-                val articles = dataState.articles
-
-                when {
-                    articles == null -> NewsFeedUiModel.Loading
-                    articles.isEmpty() -> NewsFeedUiModel.Empty
-                    else -> dataState.toContentUiModel()
-                }
-            }
-            .catch {
-                currentCoroutineContext().ensureActive()
-                Timber.e("Failed to set uiModel with data. Error = ${it.message}")
-            }
-            .flowOn(ioDispatcher)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = NewsFeedUiModel.Loading,
-            )
+    private val _uiModel = MutableStateFlow<NewsFeedUiModel>(NewsFeedUiModel.Loading)
+    val uiModel = _uiModel.asStateFlow()
 
     init {
-        observeArticles()
+        observeSavedArticles()
         loadCategories()
     }
 
-    private fun observeArticles() {
+    private fun observeSavedArticles() {
         viewModelScope.launch {
             combine(
-                articleRepository.articles.filterNotNull(),
+                articleRepository.articles.filterNotNull().map { list -> list.filter { it.isBookmarked } },
                 _filter,
-            ) { articles, filter ->
-                articles.filter { article ->
+            ) { savedArticles, filter ->
+                savedArticles.filter { article ->
                     val matchesGroup =
                         filter.selectedGroups.isEmpty() ||
                             article.categories.any { category ->
@@ -89,12 +58,12 @@ class NewsFeedViewModel @Inject constructor(
                                 category.id in filter.selectedCategoryIds
                             }
 
-                    val matchesBookmarked = !filter.bookmarkedOnly || article.isBookmarked
-
-                    matchesGroup && matchesCategory && matchesBookmarked
+                    matchesGroup && matchesCategory
                 }
             }.collect { filteredArticles ->
-                _dataState.update { it.copy(articles = filteredArticles) }
+                _uiModel.value = NewsFeedUiModel.Content(
+                    articles = filteredArticles,
+                )
             }
         }
     }
@@ -126,18 +95,6 @@ class NewsFeedViewModel @Inject constructor(
             categoriesResult.onFailure { error ->
                 Timber.e("Failed to fetch categories. Error = ${error.message}")
             }
-        }
-    }
-
-    fun refreshArticles() {
-        viewModelScope.launch {
-            _dataState.update { it.copy(isRefreshing = true) }
-
-            val result = articleRepository.refreshArticles()
-            result.onFailure { error ->
-                Timber.e("Failed to refresh articles. Error = ${error.message}")
-            }
-            _dataState.update { it.copy(isRefreshing = false) }
         }
     }
 }

@@ -1,7 +1,8 @@
 <resources>
     <string name="app_name">Orbit</string>
     <string name="news_tab">News</string>
-    <string name="trends_tab">Trends</string>
+    <string name="saved_tab">Saved</string>
+
     <string name="settings_tab">Settings</string>
     <string name="trends_tab_placeholder">Trends screen (empty)</string>
     <string name="settings_tab_placeholder">Settings screen (empty)</string>

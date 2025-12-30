@@ -31,7 +31,7 @@ import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 @Composable
-fun NewsFeedActiveFiltersBar(
+fun ActiveFiltersBar(
     categories: List<Category>,
     filters: FeedFilter,
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>, bookmarkedOnly: Boolean) -> Unit,
@@ -207,7 +207,7 @@ private fun contentColorFor(backgroundColor: Color): Color {
 
 @Preview(showBackground = true, name = "Active Filters Bar")
 @Composable
-fun NewsFeedActiveFiltersBarPreview() {
+fun ActiveFiltersBarPreview() {
     OrbitTheme {
         val sampleCategories = listOf(
             Category(
@@ -239,7 +239,7 @@ fun NewsFeedActiveFiltersBarPreview() {
             bookmarkedOnly = true,
 
         )
-        NewsFeedActiveFiltersBar(
+        ActiveFiltersBar(
             categories = sampleCategories,
             filters = sampleFilters,
             onApply = { _, _, _ -> },

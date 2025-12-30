@@ -63,7 +63,7 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun NewsFeed(
+fun ArticleFeed(
     uiModel: NewsFeedUiModel,
     categories: List<Category>,
     showFilters: Boolean,
@@ -73,6 +73,7 @@ fun NewsFeed(
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>, bookmarkedOnly: Boolean) -> Unit,
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    isRefreshEnabled: Boolean = true,
 ) {
     val listState = rememberLazyListState() // phone list
     val staggeredGridState = rememberLazyStaggeredGridState() // tablet
@@ -84,16 +85,17 @@ fun NewsFeed(
         staggeredGridState.scrollToItem(0)
     }
     Column(modifier = modifier) {
-        NewsFeedActiveFiltersBar(
+        ActiveFiltersBar(
             categories = categories,
             filters = filters,
             onApply = onApply,
         )
 
-        NewsFeedContent(
+        ArticleFeedContent(
             uiModel = uiModel,
             listState = listState,
             staggeredGridState = staggeredGridState,
+            isRefreshEnabled = isRefreshEnabled,
             onRefresh = onRefresh,
             onBookmarkClick = onBookmarkClick,
             modifier = Modifier,
@@ -113,10 +115,11 @@ fun NewsFeed(
 }
 
 @Composable
-private fun NewsFeedContent(
+private fun ArticleFeedContent(
     uiModel: NewsFeedUiModel,
     listState: LazyListState,
     staggeredGridState: LazyStaggeredGridState,
+    isRefreshEnabled: Boolean,
     onRefresh: () -> Unit,
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -146,11 +149,13 @@ private fun NewsFeedContent(
             modifier = Modifier.fillMaxSize()
                 .background(color = MaterialTheme.colorScheme.background),
             indicator = {
-                Indicator(
-                    modifier = Modifier.align(Alignment.TopCenter),
-                    isRefreshing = uiModel.isRefreshing,
-                    state = pullState,
-                )
+                if (isRefreshEnabled) {
+                    Indicator(
+                        modifier = Modifier.align(Alignment.TopCenter),
+                        isRefreshing = uiModel.isRefreshing,
+                        state = pullState,
+                    )
+                }
             },
         ) {
             when (val state = uiModel) {
@@ -265,16 +270,17 @@ fun openMediumOrBrowser(context: Context, url: String) {
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Preview(showBackground = true)
 @Composable
-fun NewsFeedPreview() {
+fun ArticleFeedPreview() {
     OrbitTheme {
         CompositionLocalProvider(
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
-            NewsFeedContent(
+            ArticleFeedContent(
                 uiModel = NewsFeedUiModel.Content(
                     articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2")),
                 ),
                 listState = rememberLazyListState(),
+                isRefreshEnabled = true,
                 staggeredGridState = rememberLazyStaggeredGridState(),
                 onRefresh = {},
                 onBookmarkClick = { _, _ -> },
@@ -286,16 +292,17 @@ fun NewsFeedPreview() {
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Preview(showBackground = true, name = "Tablet Preview", device = "spec:width=800dp,height=1280dp")
 @Composable
-fun NewsFeedTabletPreview() {
+fun ArticleFeedTabletPreview() {
     OrbitTheme {
         CompositionLocalProvider(
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
-            NewsFeedContent(
+            ArticleFeedContent(
                 uiModel = NewsFeedUiModel.Content(
                     articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2"), getArticlePreviewData("3")),
                 ),
                 listState = rememberLazyListState(),
+                isRefreshEnabled = true,
                 staggeredGridState = rememberLazyStaggeredGridState(),
                 onRefresh = {},
                 onBookmarkClick = { _, _ -> },
