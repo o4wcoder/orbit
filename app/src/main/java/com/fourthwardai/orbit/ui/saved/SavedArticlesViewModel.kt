@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import com.fourthwardai.orbit.repository.ArticleRepository
 import com.fourthwardai.orbit.ui.ArticleListViewModelDelegate
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.filter
 import javax.inject.Inject
 
 @HiltViewModel
