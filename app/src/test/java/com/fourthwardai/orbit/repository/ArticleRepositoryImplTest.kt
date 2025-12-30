@@ -55,7 +55,6 @@ class ArticleRepositoryImplTest {
         teaser = "Teaser",
         source = "Source",
         sourceAvatarUrl = null,
-        createdTime = "2020-01-01T00:00:00Z",
         ingestedAt = Instant.parse("2020-01-01T00:00:00Z"),
         categories = listOf(sampleCategory()),
         isBookmarked = bookmarked,
@@ -87,7 +86,6 @@ class ArticleRepositoryImplTest {
         // Mock getById to return a corresponding ArticleEntity for bookmark handling
         coEvery { fakeArticleDao.getById("a1") } returns ArticleEntity(
             id = "a1",
-            createdTime = articles[0].createdTime,
             title = articles[0].title,
             url = articles[0].url,
             author = articles[0].author,
@@ -139,7 +137,6 @@ class ArticleRepositoryImplTest {
         // Mock getById to return a corresponding ArticleEntity for bookmark handling
         coEvery { fakeArticleDao.getById("a1") } returns ArticleEntity(
             id = "a1",
-            createdTime = articles[0].createdTime,
             title = articles[0].title,
             url = articles[0].url,
             author = articles[0].author,
@@ -245,7 +242,6 @@ class ArticleRepositoryImplTest {
 
         val entity = ArticleEntity(
             id = "a1",
-            createdTime = "2020-01-01T00:00:00Z",
             title = "T",
             url = "u",
             author = "author",
@@ -283,7 +279,6 @@ class ArticleRepositoryImplTest {
 
         val entity = ArticleEntity(
             id = "a2",
-            createdTime = "2020-01-01T00:00:00Z",
             title = "T2",
             url = "u2",
             author = "author2",
