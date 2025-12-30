@@ -119,7 +119,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 }
                 composable(Screen.Saved.route) {
                     val viewModel: SavedArticlesViewModel = hiltViewModel()
-                    val uiState by viewModel.uiModel.collectAsStateWithLifecycle()
+                    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                     ArticleFeed(
                         uiModel = uiState,
                         isRefreshEnabled = false,
