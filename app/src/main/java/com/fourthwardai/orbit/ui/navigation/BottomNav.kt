@@ -128,7 +128,6 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         filters = viewModel.filter.collectAsStateWithLifecycle().value,
                         onDismissFilters = { showFilters = false },
                         onApply = { groups, categoryIds ->
-
                             viewModel.onFiltersApplied(groups, categoryIds)
                             showFilters = false
                         },
