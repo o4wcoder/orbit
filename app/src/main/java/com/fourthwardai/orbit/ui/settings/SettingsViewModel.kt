@@ -15,10 +15,10 @@ class SettingsViewModel @Inject constructor(
     private val repository: SettingsRepository,
 ) : ViewModel() {
     val theme: StateFlow<ThemePreference> = repository.themePreference()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, ThemePreference.System)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), ThemePreference.System)
 
     val dynamicColorEnabled: StateFlow<Boolean> = repository.dynamicColorEnabled()
-        .stateIn(viewModelScope, SharingStarted.Eagerly, true)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), true)
 
     fun setTheme(pref: ThemePreference) {
         viewModelScope.launch { repository.setThemePreference(pref) }
