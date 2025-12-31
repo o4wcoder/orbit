@@ -102,7 +102,6 @@ fun SettingsScreen(
                         checked = dynamicColorEnabled,
                         onCheckedChange = {
                             viewModel.setDynamicColorEnabled(it)
-                            onDynamicColorChanged(it)
                         },
                     )
                 }
