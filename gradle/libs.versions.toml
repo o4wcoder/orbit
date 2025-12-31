@@ -23,6 +23,7 @@ mockk = "1.13.9"
 kotlinx-coroutines-test = "1.10.2"
 room = "2.8.0" # Bumped Room to a newer release that supports newer kotlinx-metadata-jvm
 ksp = "2.2.21" # KSP version aligned with Kotlin 2.2.x
+datastore = "1.1.0"
 
 # WorkManager and Hilt Work
 workmanager = "2.8.1"
@@ -59,6 +60,7 @@ timber = { group = "com.jakewharton.timber", name= "timber", version.ref = "timb
 androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 revenuecat-placeholder = { group = "com.revenuecat.purchases", name = "placeholder", version.ref = "revenuecat" }
+androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
 # Room libraries (runtime, ktx, compiler)
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }

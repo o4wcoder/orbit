@@ -24,9 +24,6 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -35,6 +32,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fourthwardai.orbit.BuildConfig
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.extensions.VerticalSpacer
@@ -43,131 +42,137 @@ import com.fourthwardai.orbit.ui.theme.OrbitTheme
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
-    dynamicColorEnabledInitial: Boolean = true,
-    themeInitial: ThemePreference = ThemePreference.System,
     version: String = BuildConfig.VERSION_NAME,
+    viewModel: SettingsViewModel = hiltViewModel(),
     onDynamicColorChanged: (Boolean) -> Unit = {},
     onThemeSelected: (ThemePreference) -> Unit = {},
 ) {
-    var dynamicColorEnabled by remember { mutableStateOf(dynamicColorEnabledInitial) }
-    var selectedTheme by remember { mutableStateOf(themeInitial) }
+    val dynamicColorEnabled by viewModel.dynamicColorEnabled.collectAsStateWithLifecycle()
+    val selectedTheme by viewModel.theme.collectAsStateWithLifecycle()
 
     Column(
         modifier = modifier
-            .padding(horizontal = 16.dp),
+            .padding(horizontal = 16.dp)
+            .fillMaxWidth(),
+        verticalArrangement = Arrangement.SpaceBetween,
     ) {
-        // Section label
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = stringResource(R.string.settings_appearance),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onBackground,
-        )
+        Column {
+            // Section label
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.settings_appearance),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onBackground,
+            )
 
-        VerticalSpacer(12.dp)
+            VerticalSpacer(12.dp)
 
-        // Dynamic Color card
-        ElevatedCard(
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
-                    shape = RoundedCornerShape(12.dp),
-                ),
-        ) {
-            Row(
+            // Dynamic Color card
+            ElevatedCard(
+                shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(12.dp),
+                    ),
             ) {
-                Column {
-                    Text(
-                        text = stringResource(R.string.settings_dynamic_color_title),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.settings_dynamic_color_summary),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Column {
+                        Text(
+                            text = stringResource(R.string.settings_dynamic_color_title),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.settings_dynamic_color_summary),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+
+                    Switch(
+                        checked = dynamicColorEnabled,
+                        onCheckedChange = {
+                            viewModel.setDynamicColorEnabled(it)
+                            onDynamicColorChanged(it)
+                        },
                     )
                 }
-
-                Switch(
-                    checked = dynamicColorEnabled,
-                    onCheckedChange = {
-                        dynamicColorEnabled = it
-                        onDynamicColorChanged(it)
-                    },
-                )
             }
-        }
 
-        VerticalSpacer(12.dp)
+            VerticalSpacer(12.dp)
 
-        Text(
-            text = stringResource(R.string.settings_theme),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
-        )
+            Text(
+                text = stringResource(R.string.settings_theme),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.padding(top = 4.dp, bottom = 8.dp),
+            )
 
-        ElevatedCard(
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp))
-                .border(
-                    width = 1.dp,
-                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
-                    shape = RoundedCornerShape(12.dp),
-                ),
-        ) {
-            Column {
-                ThemeOptionRow(
-                    label = stringResource(R.string.settings_theme_light),
-                    icon = Icons.Filled.LightMode,
-                    selected = selectedTheme == ThemePreference.Light,
-                    onClick = {
-                        selectedTheme = ThemePreference.Light
-                        onThemeSelected(ThemePreference.Light)
-                    },
-                )
+            ElevatedCard(
+                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
+                        shape = RoundedCornerShape(12.dp),
+                    ),
+            ) {
+                Column {
+                    ThemeOptionRow(
+                        label = stringResource(R.string.settings_theme_light),
+                        icon = Icons.Filled.LightMode,
+                        selected = selectedTheme == ThemePreference.Light,
+                        onClick = {
+                            viewModel.setTheme(ThemePreference.Light)
+                            onThemeSelected(ThemePreference.Light)
+                        },
+                    )
 
-                HorizontalDivider()
+                    HorizontalDivider()
 
-                ThemeOptionRow(
-                    label = stringResource(R.string.settings_theme_dark),
-                    icon = Icons.Filled.DarkMode,
-                    selected = selectedTheme == ThemePreference.Dark,
-                    onClick = {
-                        selectedTheme = ThemePreference.Dark
-                        onThemeSelected(ThemePreference.Dark)
-                    },
-                )
+                    ThemeOptionRow(
+                        label = stringResource(R.string.settings_theme_dark),
+                        icon = Icons.Filled.DarkMode,
+                        selected = selectedTheme == ThemePreference.Dark,
+                        onClick = {
+                            viewModel.setTheme(ThemePreference.Dark)
+                            onThemeSelected(ThemePreference.Dark)
+                        },
+                    )
 
-                HorizontalDivider()
+                    HorizontalDivider()
 
-                ThemeOptionRow(
-                    label = stringResource(R.string.settings_theme_system_default),
-                    icon = Icons.Filled.Android,
-                    selected = selectedTheme == ThemePreference.System,
-                    onClick = {
-                        selectedTheme = ThemePreference.System
-                        onThemeSelected(ThemePreference.System)
-                    },
-                )
+                    ThemeOptionRow(
+                        label = stringResource(R.string.settings_theme_system_default),
+                        icon = Icons.Filled.Android,
+                        selected = selectedTheme == ThemePreference.System,
+                        onClick = {
+                            viewModel.setTheme(ThemePreference.System)
+                            onThemeSelected(ThemePreference.System)
+                        },
+                    )
+                }
             }
         }
 
         Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.Center) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
                 Text(
                     text = stringResource(R.string.settings_version_format, version),
                     style = MaterialTheme.typography.bodySmall,
@@ -181,8 +186,6 @@ fun SettingsScreen(
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 

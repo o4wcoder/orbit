@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.fourthwardai.orbit.ui.navigation
 
 import androidx.compose.foundation.layout.Box
@@ -27,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -43,7 +45,7 @@ import com.fourthwardai.orbit.ui.settings.SettingsScreen
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
-    object News : Screen("news", R.string.news_tab, Icons.Filled.Article)
+    object News : Screen("insights", R.string.news_tab, Icons.Filled.Article)
     object Saved : Screen("saved", R.string.saved_tab, Icons.Filled.Bookmark)
     object Settings : Screen("settings", R.string.settings_tab, Icons.Filled.Settings)
 }
@@ -68,8 +70,14 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
+                        val titleRes = when (currentRoute) {
+                            Screen.News.route -> Screen.News.labelRes
+                            Screen.Saved.route -> Screen.Saved.labelRes
+                            Screen.Settings.route -> Screen.Settings.labelRes
+                            else -> R.string.app_name
+                        }
                         Text(
-                            text = stringResource(R.string.app_name),
+                            text = stringResource(titleRes),
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     },

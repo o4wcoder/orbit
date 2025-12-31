@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Orbit</string>
-    <string name="news_tab">News</string>
+    <string name="news_tab">Insights</string>
     <string name="saved_tab">Saved</string>
 
     <string name="settings_tab">Settings</string>
@@ -40,5 +40,4 @@
     <string name="settings_theme_system_default">System Default</string>
     <string name="settings_version_format">Orbit v%s</string>
     <string name="settings_built_by">Built by fourthwardai.com</string>
-
 </resources>
