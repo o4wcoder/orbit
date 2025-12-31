@@ -23,12 +23,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -41,6 +39,7 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.ui.newsfeed.ArticleFeed
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.saved.SavedArticlesViewModel
+import com.fourthwardai.orbit.ui.settings.SettingsScreen
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
@@ -114,7 +113,6 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         },
                         onBookmarkClick = viewModel::onBookmarkClick,
                         categories = viewModel.categories.collectAsStateWithLifecycle().value,
-                        modifier = Modifier.fillMaxSize(),
                     )
                 }
                 composable(Screen.Saved.route) {
@@ -136,14 +134,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     )
                 }
                 composable(Screen.Settings.route) {
-                    // Empty placeholder for Settings
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Text(
-                            text = stringResource(R.string.settings_tab_placeholder),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(16.dp).align(Alignment.Center),
-                        )
-                    }
+                    SettingsScreen()
                 }
             }
         }

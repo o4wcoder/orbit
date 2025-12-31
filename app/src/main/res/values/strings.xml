@@ -30,5 +30,15 @@
     <string name="trends_research">Research</string>
     <string name="trends_cancel">Cancel</string>
 
+    <!-- Settings screen strings -->
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_dynamic_color_title">Dynamic Color</string>
+    <string name="settings_dynamic_color_summary">Match app colors to your wallpaper</string>
+    <string name="settings_theme">Theme</string>
+    <string name="settings_theme_light">Light</string>
+    <string name="settings_theme_dark">Dark</string>
+    <string name="settings_theme_system_default">System Default</string>
+    <string name="settings_version_format">Orbit v%s</string>
+    <string name="settings_built_by">Built by fourthwardai.com</string>
 
 </resources>
