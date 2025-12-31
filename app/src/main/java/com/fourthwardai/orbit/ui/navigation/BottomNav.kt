@@ -1,3 +1,5 @@
+@file:Suppress("DEPRECATION")
+
 package com.fourthwardai.orbit.ui.navigation
 
 import androidx.compose.foundation.layout.Box
@@ -23,13 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -41,10 +41,11 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.ui.newsfeed.ArticleFeed
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.saved.SavedArticlesViewModel
+import com.fourthwardai.orbit.ui.settings.SettingsScreen
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
-    object News : Screen("news", R.string.news_tab, Icons.Filled.Article)
+    object News : Screen("insights", R.string.news_tab, Icons.Filled.Article)
     object Saved : Screen("saved", R.string.saved_tab, Icons.Filled.Bookmark)
     object Settings : Screen("settings", R.string.settings_tab, Icons.Filled.Settings)
 }
@@ -69,8 +70,14 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
             topBar = {
                 CenterAlignedTopAppBar(
                     title = {
+                        val titleRes = when (currentRoute) {
+                            Screen.News.route -> Screen.News.labelRes
+                            Screen.Saved.route -> Screen.Saved.labelRes
+                            Screen.Settings.route -> Screen.Settings.labelRes
+                            else -> R.string.app_name
+                        }
                         Text(
-                            text = stringResource(R.string.app_name),
+                            text = stringResource(titleRes),
                             color = MaterialTheme.colorScheme.onSurface,
                         )
                     },
@@ -114,7 +121,6 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         },
                         onBookmarkClick = viewModel::onBookmarkClick,
                         categories = viewModel.categories.collectAsStateWithLifecycle().value,
-                        modifier = Modifier.fillMaxSize(),
                     )
                 }
                 composable(Screen.Saved.route) {
@@ -136,14 +142,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     )
                 }
                 composable(Screen.Settings.route) {
-                    // Empty placeholder for Settings
-                    Box(modifier = Modifier.fillMaxSize()) {
-                        Text(
-                            text = stringResource(R.string.settings_tab_placeholder),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(16.dp).align(Alignment.Center),
-                        )
-                    }
+                    SettingsScreen()
                 }
             }
         }
