@@ -3,6 +3,7 @@ package com.fourthwardai.orbit.data.repository
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.fourthwardai.orbit.data.preferences.OrbitPreferencesDataStore
+import com.fourthwardai.orbit.repository.SettingsRepository
 import com.fourthwardai.orbit.ui.settings.ThemePreference
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest

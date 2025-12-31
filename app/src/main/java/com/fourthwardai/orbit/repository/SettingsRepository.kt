@@ -1,4 +1,4 @@
-package com.fourthwardai.orbit.data.repository
+package com.fourthwardai.orbit.repository
 
 import com.fourthwardai.orbit.data.preferences.OrbitPreferencesDataStore
 import com.fourthwardai.orbit.ui.settings.ThemePreference

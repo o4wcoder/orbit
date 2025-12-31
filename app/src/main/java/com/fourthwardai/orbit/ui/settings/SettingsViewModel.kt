@@ -2,7 +2,7 @@ package com.fourthwardai.orbit.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.fourthwardai.orbit.data.repository.SettingsRepository
+import com.fourthwardai.orbit.repository.SettingsRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
