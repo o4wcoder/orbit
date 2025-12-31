@@ -52,8 +52,8 @@ class MainActivity : ComponentActivity() {
                         disableDynamicTheming = uiState.shouldDisableDynamicTheming,
                     )
                 }
-                    .onEach { themeSettings = it }
                     .distinctUntilChanged()
+                    .onEach { themeSettings = it }
                     .collect()
             }
         }
