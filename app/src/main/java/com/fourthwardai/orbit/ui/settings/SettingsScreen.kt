@@ -44,8 +44,6 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     version: String = BuildConfig.VERSION_NAME,
     viewModel: SettingsViewModel = hiltViewModel(),
-    onDynamicColorChanged: (Boolean) -> Unit = {},
-    onThemeSelected: (ThemePreference) -> Unit = {},
 ) {
     val dynamicColorEnabled by viewModel.dynamicColorEnabled.collectAsStateWithLifecycle()
     val selectedTheme by viewModel.theme.collectAsStateWithLifecycle()
