@@ -1,28 +1,33 @@
 package com.fourthwardai.orbit.ui.categoryfilter
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -36,13 +41,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.extensions.VerticalSpacer
@@ -50,14 +56,14 @@ import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategoryFilterDialog(
+fun CategoryFilterScreen(
     categories: List<Category>,
     initialSelectedGroups: Set<String> = emptySet(),
     initialSelectedCategoryIds: Set<String> = emptySet(),
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // Local state inside dialog (hoisted out via onApply)
+    // Local state inside screen (hoisted out via onApply)
     var selectedGroups by remember { mutableStateOf(initialSelectedGroups) }
     var selectedCategoryIds by remember { mutableStateOf(initialSelectedCategoryIds) }
 
@@ -75,80 +81,61 @@ fun CategoryFilterDialog(
         }
     }
 
-    val hasAnySelection = selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty()
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text(stringResource(R.string.filters_title)) },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.filters_close_description),
-                                )
-                            }
-                        },
-                        actions = {
-                            TextButton(
-                                enabled = hasAnySelection,
-                                onClick = {
-                                    selectedGroups = emptySet()
-                                    selectedCategoryIds = emptySet()
-                                },
-                            ) {
-                                Text(stringResource(R.string.filters_clear_all))
-                            }
-                        },
-                    )
-                },
-                bottomBar = {
-                    BottomAppBar(
-                        tonalElevation = 3.dp,
-                    ) {
-                        Spacer(modifier = Modifier.weight(1f))
-                        Button(
-                            onClick = {
-                                onApply(selectedGroups, selectedCategoryIds)
-                            },
-                        ) {
-                            Text(stringResource(R.string.filters_apply))
-                        }
-                    }
-                },
-            ) { innerPadding ->
-                FilterContent(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
-                    allGroups = allGroups,
-                    visibleCategories = visibleCategories,
-                    selectedGroups = selectedGroups,
-                    selectedCategoryIds = selectedCategoryIds,
-                    onGroupToggled = { group ->
-                        selectedGroups = if (group in selectedGroups) {
-                            selectedGroups - group
-                        } else {
-                            selectedGroups + group
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.filters_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.filters_close_description),
+                            )
                         }
                     },
-                    onCategoryToggled = { categoryId ->
-                        selectedCategoryIds = if (categoryId in selectedCategoryIds) {
-                            selectedCategoryIds - categoryId
-                        } else {
-                            selectedCategoryIds + categoryId
+                    actions = {
+                        val hasAnySelection = selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty()
+                        TextButton(
+                            enabled = hasAnySelection,
+                            onClick = {
+                                selectedGroups = emptySet()
+                                selectedCategoryIds = emptySet()
+                            },
+                        ) {
+                            Text(stringResource(R.string.filters_clear_all))
                         }
                     },
                 )
-            }
+            },
+        ) { innerPadding ->
+            FilterContent(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
+                allGroups = allGroups,
+                visibleCategories = visibleCategories,
+                selectedGroups = selectedGroups,
+                selectedCategoryIds = selectedCategoryIds,
+                onGroupToggled = { group ->
+                    selectedGroups = if (group in selectedGroups) {
+                        selectedGroups - group
+                    } else {
+                        selectedGroups + group
+                    }
+                },
+                onApply = { onApply(selectedGroups, selectedCategoryIds) },
+                onCategoryToggled = { categoryId ->
+                    selectedCategoryIds = if (categoryId in selectedCategoryIds) {
+                        selectedCategoryIds - categoryId
+                    } else {
+                        selectedCategoryIds + categoryId
+                    }
+                },
+            )
         }
     }
 }
@@ -160,102 +147,166 @@ private fun FilterContent(
     visibleCategories: List<Category>,
     selectedGroups: Set<String>,
     selectedCategoryIds: Set<String>,
+    onApply: () -> Unit,
     onGroupToggled: (String) -> Unit,
     onCategoryToggled: (String) -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .padding(horizontal = 16.dp),
-    ) {
-        VerticalSpacer(16.dp)
-
-        Text(
-            text = stringResource(R.string.filters_group_title),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        )
-
-        VerticalSpacer(8.dp)
-
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 100.dp,
+            ),
         ) {
-            allGroups.forEach { group ->
-                FilterChip(
-                    selected = group in selectedGroups,
-                    onClick = { onGroupToggled(group) },
-                    label = { Text(group) },
-                )
-            }
-        }
+            item {
+                VerticalSpacer(16.dp)
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = stringResource(R.string.filters_category_title),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (visibleCategories.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp),
-                contentAlignment = Alignment.Center,
-            ) {
                 Text(
-                    text = stringResource(R.string.filters_no_categories),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = stringResource(R.string.filters_group_title),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 )
+
+                VerticalSpacer(8.dp)
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp),
-            ) {
-                items(
-                    items = visibleCategories,
-                    key = { it.id },
-                ) { category ->
-                    CategoryRow(
-                        category = category,
-                        selected = category.id in selectedCategoryIds,
-                        onToggle = { onCategoryToggled(category.id) },
-                    )
+
+            item {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    allGroups.forEach { group ->
+                        FilterChip(
+                            selected = group in selectedGroups,
+                            onClick = { onGroupToggled(group) },
+                            label = { Text(group) },
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = stringResource(R.string.filters_category_title),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            if (visibleCategories.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.filters_no_categories),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                item {
+                    ElevatedCard(
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(12.dp),
+                            ),
+                    ) {
+                        visibleCategories.forEachIndexed { index, category ->
+                            CategoryRow(
+                                category = category,
+                                checked = category.id in selectedCategoryIds,
+                                onToggle = { onCategoryToggled(category.id) },
+                            )
+                            if (index < visibleCategories.lastIndex) {
+                                HorizontalDivider()
+                            }
+                        }
+                    }
                 }
             }
         }
+
+        BottomApplyBar(
+            selectedCount = selectedCategoryIds.count() + selectedGroups.count(),
+            onApply = onApply,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+        )
     }
 }
 
 @Composable
 private fun CategoryRow(
     category: Category,
-    selected: Boolean,
+    checked: Boolean,
     onToggle: () -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(category.name) },
-        supportingContent = {
-            Text(
-                category.group,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        leadingContent = {
-            Checkbox(
-                checked = selected,
-                onCheckedChange = { onToggle() },
-            )
-        },
+    Row(
         modifier = Modifier
-            .fillMaxWidth(),
-    )
-    HorizontalDivider()
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = category.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = category.group,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { onToggle() },
+        )
+    }
+}
+
+@Composable
+private fun BottomApplyBar(
+    selectedCount: Int,
+    onApply: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .padding(horizontal = 16.dp, vertical = 16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Button(
+            modifier = Modifier.shadow(4.dp, ButtonDefaults.shape),
+            onClick = onApply,
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
+        ) {
+            Icon(Icons.Default.Check, contentDescription = null)
+            Spacer(Modifier.width(10.dp))
+            Text(stringResource(R.string.filters_apply_filters, selectedCount))
+        }
+    }
 }
 
 @Preview(showSystemUi = true)
@@ -271,7 +322,7 @@ fun CategoryFilterDialogPreview() {
     )
 
     OrbitTheme {
-        CategoryFilterDialog(
+        CategoryFilterScreen(
             categories = sample,
             onApply = { groups, categories ->
                 // TODO: send to ViewModel

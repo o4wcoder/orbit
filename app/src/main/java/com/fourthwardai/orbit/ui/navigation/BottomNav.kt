@@ -2,13 +2,20 @@
 
 package com.fourthwardai.orbit.ui.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -38,16 +45,17 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fourthwardai.orbit.R
+import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterScreen
 import com.fourthwardai.orbit.ui.newsfeed.ArticleFeed
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.saved.SavedArticlesViewModel
 import com.fourthwardai.orbit.ui.settings.SettingsScreen
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
-sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
-    object News : Screen("insights", R.string.news_tab, Icons.Filled.Article)
-    object Saved : Screen("saved", R.string.saved_tab, Icons.Filled.Bookmark)
-    object Settings : Screen("settings", R.string.settings_tab, Icons.Filled.Settings)
+sealed class Screen(val route: String, val labelRes: Int, val title: Int, val icon: ImageVector) {
+    object News : Screen("home", R.string.home_tab, R.string.app_name, Icons.Filled.Home)
+    object Saved : Screen("saved", R.string.saved_tab, R.string.saved_tab, Icons.Filled.Bookmark)
+    object Settings : Screen("settings", R.string.settings_tab, R.string.settings_tab, Icons.Filled.Settings)
 }
 
 private val bottomNavItems = listOf(
@@ -64,6 +72,14 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
     val currentRoute = navBackStackEntry?.destination?.route
     var showFilters by remember { mutableStateOf(false) }
 
+    val newsEntry = remember(navBackStackEntry) {
+        runCatching { navController.getBackStackEntry(Screen.News.route) }.getOrNull()
+    }
+
+    val savedEntry = remember(navBackStackEntry) {
+        runCatching { navController.getBackStackEntry(Screen.Saved.route) }.getOrNull()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = modifier,
@@ -71,9 +87,9 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 CenterAlignedTopAppBar(
                     title = {
                         val titleRes = when (currentRoute) {
-                            Screen.News.route -> Screen.News.labelRes
-                            Screen.Saved.route -> Screen.Saved.labelRes
-                            Screen.Settings.route -> Screen.Settings.labelRes
+                            Screen.News.route -> Screen.News.title
+                            Screen.Saved.route -> Screen.Saved.title
+                            Screen.Settings.route -> Screen.Settings.title
                             else -> R.string.app_name
                         }
                         Text(
@@ -111,16 +127,13 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                     ArticleFeed(
                         uiModel = uiState,
-                        onRefresh = viewModel::refreshArticles,
-                        showFilters = showFilters,
+                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
                         filters = viewModel.filter.collectAsStateWithLifecycle().value,
-                        onDismissFilters = { showFilters = false },
+                        onRefresh = viewModel::refreshArticles,
                         onApply = { groups, categoryIds ->
                             viewModel.onFiltersApplied(groups, categoryIds)
-                            showFilters = false
                         },
                         onBookmarkClick = viewModel::onBookmarkClick,
-                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
                     )
                 }
                 composable(Screen.Saved.route) {
@@ -128,21 +141,78 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                     ArticleFeed(
                         uiModel = uiState,
+                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
+                        filters = viewModel.filter.collectAsStateWithLifecycle().value,
                         isRefreshEnabled = false,
                         onRefresh = {},
-                        showFilters = showFilters,
-                        filters = viewModel.filter.collectAsStateWithLifecycle().value,
-                        onDismissFilters = { showFilters = false },
                         onApply = { groups, categoryIds ->
                             viewModel.onFiltersApplied(groups, categoryIds)
-                            showFilters = false
                         },
                         onBookmarkClick = viewModel::onBookmarkClick,
-                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
                     )
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen()
+                }
+            }
+        }
+
+        // Intercept system back button when filters overlay is shown so it dismisses the overlay
+        if (showFilters) {
+            BackHandler {
+                showFilters = false
+            }
+        }
+
+        // Animated fullscreen filter screen overlay
+        AnimatedVisibility(
+            visible = showFilters && (currentRoute == Screen.News.route || currentRoute == Screen.Saved.route),
+            enter = slideInVertically(
+                initialOffsetY = { fullHeight -> fullHeight },
+                animationSpec = tween(320),
+            ) + fadeIn(animationSpec = tween(320)),
+            exit = slideOutVertically(
+                targetOffsetY = { fullHeight -> fullHeight },
+                animationSpec = tween(280),
+            ) + fadeOut(animationSpec = tween(280)),
+        ) {
+            when (currentRoute) {
+                Screen.News.route -> {
+                    newsEntry?.let {
+                        val newsVm: NewsFeedViewModel = hiltViewModel(it)
+
+                        CategoryFilterScreen(
+                            categories = newsVm.categories.collectAsStateWithLifecycle().value,
+                            initialSelectedGroups = newsVm.filter.collectAsStateWithLifecycle().value.selectedGroups,
+                            initialSelectedCategoryIds = newsVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
+                            onApply = { groups, categoryIds ->
+                                newsVm.onFiltersApplied(groups, categoryIds)
+                                showFilters = false
+                            },
+                            onDismiss = { showFilters = false },
+                        )
+                    }
+                }
+
+                Screen.Saved.route -> {
+                    savedEntry?.let {
+                        val savedVm: SavedArticlesViewModel = hiltViewModel(it)
+
+                        CategoryFilterScreen(
+                            categories = savedVm.categories.collectAsStateWithLifecycle().value,
+                            initialSelectedGroups = savedVm.filter.collectAsStateWithLifecycle().value.selectedGroups,
+                            initialSelectedCategoryIds = savedVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
+                            onApply = { groups, categoryIds ->
+                                savedVm.onFiltersApplied(groups, categoryIds)
+                                showFilters = false
+                            },
+                            onDismiss = { showFilters = false },
+                        )
+                    }
+                }
+
+                else -> {
+                    // No overlay for other routes
                 }
             }
         }
