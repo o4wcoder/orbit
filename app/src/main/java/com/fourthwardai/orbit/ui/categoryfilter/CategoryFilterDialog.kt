@@ -1,28 +1,34 @@
 package com.fourthwardai.orbit.ui.categoryfilter
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.BottomAppBar
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
@@ -36,9 +42,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -110,20 +119,6 @@ fun CategoryFilterDialog(
                         },
                     )
                 },
-                bottomBar = {
-                    BottomAppBar(
-                        tonalElevation = 3.dp,
-                    ) {
-                        Spacer(modifier = Modifier.weight(1f))
-                        Button(
-                            onClick = {
-                                onApply(selectedGroups, selectedCategoryIds)
-                            },
-                        ) {
-                            Text(stringResource(R.string.filters_apply))
-                        }
-                    }
-                },
             ) { innerPadding ->
                 FilterContent(
                     modifier = Modifier
@@ -140,6 +135,7 @@ fun CategoryFilterDialog(
                             selectedGroups + group
                         }
                     },
+                    onApply = { onApply(selectedGroups, selectedCategoryIds) },
                     onCategoryToggled = { categoryId ->
                         selectedCategoryIds = if (categoryId in selectedCategoryIds) {
                             selectedCategoryIds - categoryId
@@ -160,102 +156,175 @@ private fun FilterContent(
     visibleCategories: List<Category>,
     selectedGroups: Set<String>,
     selectedCategoryIds: Set<String>,
+    onApply: () -> Unit,
     onGroupToggled: (String) -> Unit,
     onCategoryToggled: (String) -> Unit,
 ) {
-    Column(
-        modifier = modifier
-            .padding(horizontal = 16.dp),
-    ) {
-        VerticalSpacer(16.dp)
-
-        Text(
-            text = stringResource(R.string.filters_group_title),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        )
-
-        VerticalSpacer(8.dp)
-
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            contentPadding = PaddingValues(
+                start = 16.dp,
+                end = 16.dp,
+                bottom = 140.dp,
+            ),
         ) {
-            allGroups.forEach { group ->
-                FilterChip(
-                    selected = group in selectedGroups,
-                    onClick = { onGroupToggled(group) },
-                    label = { Text(group) },
-                )
-            }
-        }
+            item {
+                VerticalSpacer(16.dp)
 
-        Spacer(modifier = Modifier.height(24.dp))
-
-        Text(
-            text = stringResource(R.string.filters_category_title),
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        if (visibleCategories.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 32.dp),
-                contentAlignment = Alignment.Center,
-            ) {
                 Text(
-                    text = stringResource(R.string.filters_no_categories),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    text = stringResource(R.string.filters_group_title),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
                 )
+
+                VerticalSpacer(8.dp)
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 80.dp),
-            ) {
-                items(
-                    items = visibleCategories,
-                    key = { it.id },
-                ) { category ->
-                    CategoryRow(
-                        category = category,
-                        selected = category.id in selectedCategoryIds,
-                        onToggle = { onCategoryToggled(category.id) },
-                    )
+
+            item {
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    allGroups.forEach { group ->
+                        FilterChip(
+                            selected = group in selectedGroups,
+                            onClick = { onGroupToggled(group) },
+                            label = { Text(group) },
+                        )
+                    }
+                }
+            }
+
+            item {
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Text(
+                    text = stringResource(R.string.filters_category_title),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            if (visibleCategories.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = stringResource(R.string.filters_no_categories),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+            } else {
+                item {
+                    ElevatedCard(
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(12.dp),
+                            ),
+                    ) {
+                        visibleCategories.forEachIndexed { index, category ->
+                            CategoryRow(
+                                category = category,
+                                checked = category.id in selectedCategoryIds,
+                                onToggle = { onCategoryToggled(category.id) },
+                            )
+                            if (index < visibleCategories.lastIndex) {
+                                HorizontalDivider()
+                            }
+                        }
+                    }
                 }
             }
         }
+
+        BottomApplyBar(
+            selectedCount = selectedCategoryIds.count(),
+            onApply = onApply,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+        )
     }
 }
 
 @Composable
 private fun CategoryRow(
     category: Category,
-    selected: Boolean,
+    checked: Boolean,
     onToggle: () -> Unit,
 ) {
-    ListItem(
-        headlineContent = { Text(category.name) },
-        supportingContent = {
-            Text(
-                category.group,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        },
-        leadingContent = {
-            Checkbox(
-                checked = selected,
-                onCheckedChange = { onToggle() },
-            )
-        },
+    Row(
         modifier = Modifier
-            .fillMaxWidth(),
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = category.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(2.dp))
+            Text(
+                text = category.group,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+
+        Checkbox(
+            checked = checked,
+            onCheckedChange = { onToggle() },
+        )
+    }
+}
+
+@Composable
+private fun BottomApplyBar(
+    selectedCount: Int,
+    onApply: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val surface = MaterialTheme.colorScheme.surface
+    val gradient = Brush.verticalGradient(
+        0f to surface.copy(alpha = 0f),
+        0.25f to surface.copy(alpha = 0.95f),
+        1f to surface,
     )
-    HorizontalDivider()
+
+    Column(
+        modifier = modifier
+            //  .background(gradient)
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+            .navigationBarsPadding(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Button(
+            onClick = onApply,
+            shape = RoundedCornerShape(999.dp),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 14.dp),
+        ) {
+            Icon(Icons.Default.Check, contentDescription = null)
+            Spacer(Modifier.width(10.dp))
+            Text("Apply Filters ($selectedCount)")
+        }
+    }
 }
 
 @Preview(showSystemUi = true)

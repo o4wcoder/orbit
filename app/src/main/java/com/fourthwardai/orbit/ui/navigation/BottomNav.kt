@@ -6,9 +6,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -44,10 +44,10 @@ import com.fourthwardai.orbit.ui.saved.SavedArticlesViewModel
 import com.fourthwardai.orbit.ui.settings.SettingsScreen
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
-sealed class Screen(val route: String, val labelRes: Int, val icon: ImageVector) {
-    object News : Screen("insights", R.string.news_tab, Icons.Filled.Article)
-    object Saved : Screen("saved", R.string.saved_tab, Icons.Filled.Bookmark)
-    object Settings : Screen("settings", R.string.settings_tab, Icons.Filled.Settings)
+sealed class Screen(val route: String, val labelRes: Int, val title: Int, val icon: ImageVector) {
+    object News : Screen("home", R.string.home_tab, R.string.app_name, Icons.Filled.Home)
+    object Saved : Screen("saved", R.string.saved_tab, R.string.saved_tab, Icons.Filled.Bookmark)
+    object Settings : Screen("settings", R.string.settings_tab, R.string.settings_tab, Icons.Filled.Settings)
 }
 
 private val bottomNavItems = listOf(
@@ -71,9 +71,9 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 CenterAlignedTopAppBar(
                     title = {
                         val titleRes = when (currentRoute) {
-                            Screen.News.route -> Screen.News.labelRes
-                            Screen.Saved.route -> Screen.Saved.labelRes
-                            Screen.Settings.route -> Screen.Settings.labelRes
+                            Screen.News.route -> Screen.News.title
+                            Screen.Saved.route -> Screen.Saved.title
+                            Screen.Settings.route -> Screen.Settings.title
                             else -> R.string.app_name
                         }
                         Text(

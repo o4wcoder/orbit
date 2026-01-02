@@ -134,7 +134,6 @@ fun SettingsScreen(
                         selected = selectedTheme == ThemePreference.Light,
                         onClick = {
                             viewModel.setTheme(ThemePreference.Light)
-                            onThemeSelected(ThemePreference.Light)
                         },
                     )
 
@@ -146,7 +145,6 @@ fun SettingsScreen(
                         selected = selectedTheme == ThemePreference.Dark,
                         onClick = {
                             viewModel.setTheme(ThemePreference.Dark)
-                            onThemeSelected(ThemePreference.Dark)
                         },
                     )
 
@@ -158,7 +156,6 @@ fun SettingsScreen(
                         selected = selectedTheme == ThemePreference.System,
                         onClick = {
                             viewModel.setTheme(ThemePreference.System)
-                            onThemeSelected(ThemePreference.System)
                         },
                     )
                 }
