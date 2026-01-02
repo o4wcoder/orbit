@@ -2,6 +2,13 @@
 
 package com.fourthwardai.orbit.ui.navigation
 
+import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -38,6 +45,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.fourthwardai.orbit.R
+import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterScreen
 import com.fourthwardai.orbit.ui.newsfeed.ArticleFeed
 import com.fourthwardai.orbit.ui.newsfeed.NewsFeedViewModel
 import com.fourthwardai.orbit.ui.saved.SavedArticlesViewModel
@@ -111,16 +119,13 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                     ArticleFeed(
                         uiModel = uiState,
-                        onRefresh = viewModel::refreshArticles,
-                        showFilters = showFilters,
+                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
                         filters = viewModel.filter.collectAsStateWithLifecycle().value,
-                        onDismissFilters = { showFilters = false },
+                        onRefresh = viewModel::refreshArticles,
                         onApply = { groups, categoryIds ->
                             viewModel.onFiltersApplied(groups, categoryIds)
-                            showFilters = false
                         },
                         onBookmarkClick = viewModel::onBookmarkClick,
-                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
                     )
                 }
                 composable(Screen.Saved.route) {
@@ -128,21 +133,72 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                     ArticleFeed(
                         uiModel = uiState,
+                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
+                        filters = viewModel.filter.collectAsStateWithLifecycle().value,
                         isRefreshEnabled = false,
                         onRefresh = {},
-                        showFilters = showFilters,
-                        filters = viewModel.filter.collectAsStateWithLifecycle().value,
-                        onDismissFilters = { showFilters = false },
                         onApply = { groups, categoryIds ->
                             viewModel.onFiltersApplied(groups, categoryIds)
-                            showFilters = false
                         },
                         onBookmarkClick = viewModel::onBookmarkClick,
-                        categories = viewModel.categories.collectAsStateWithLifecycle().value,
                     )
                 }
                 composable(Screen.Settings.route) {
                     SettingsScreen()
+                }
+            }
+        }
+
+        // Intercept system back button when filters overlay is shown so it dismisses the overlay
+        if (showFilters) {
+            BackHandler(enabled = true) {
+                showFilters = false
+            }
+        }
+
+        // Animated fullscreen filter screen overlay
+        AnimatedVisibility(
+            visible = showFilters && navBackStackEntry != null,
+            enter = slideInVertically(initialOffsetY = { fullHeight -> fullHeight }, animationSpec = tween(320)) + fadeIn(animationSpec = tween(320)),
+            exit = slideOutVertically(targetOffsetY = { fullHeight -> fullHeight }, animationSpec = tween(280)) + fadeOut(animationSpec = tween(280)),
+        ) {
+            if (navBackStackEntry != null) {
+                when (currentRoute) {
+                    Screen.News.route -> {
+                        val entry = navBackStackEntry!!
+                        val newsVm: NewsFeedViewModel = hiltViewModel(entry)
+
+                        CategoryFilterScreen(
+                            categories = newsVm.categories.collectAsStateWithLifecycle().value,
+                            initialSelectedGroups = newsVm.filter.collectAsStateWithLifecycle().value.selectedGroups,
+                            initialSelectedCategoryIds = newsVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
+                            onApply = { groups, categoryIds ->
+                                newsVm.onFiltersApplied(groups, categoryIds)
+                                showFilters = false
+                            },
+                            onDismiss = { showFilters = false },
+                        )
+                    }
+
+                    Screen.Saved.route -> {
+                        val entry = navBackStackEntry!!
+                        val savedVm: SavedArticlesViewModel = hiltViewModel(entry)
+
+                        CategoryFilterScreen(
+                            categories = savedVm.categories.collectAsStateWithLifecycle().value,
+                            initialSelectedGroups = savedVm.filter.collectAsStateWithLifecycle().value.selectedGroups,
+                            initialSelectedCategoryIds = savedVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
+                            onApply = { groups, categoryIds ->
+                                savedVm.onFiltersApplied(groups, categoryIds)
+                                showFilters = false
+                            },
+                            onDismiss = { showFilters = false },
+                        )
+                    }
+
+                    else -> {
+                        // No overlay for other routes
+                    }
                 }
             }
         }

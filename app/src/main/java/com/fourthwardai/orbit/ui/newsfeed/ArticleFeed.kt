@@ -55,7 +55,6 @@ import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.extensions.VerticalSpacer
-import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterDialog
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
@@ -66,10 +65,8 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 fun ArticleFeed(
     uiModel: NewsFeedUiModel,
     categories: List<Category>,
-    showFilters: Boolean,
     filters: FeedFilter,
     onRefresh: () -> Unit,
-    onDismissFilters: () -> Unit,
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -99,16 +96,6 @@ fun ArticleFeed(
             onRefresh = onRefresh,
             onBookmarkClick = onBookmarkClick,
             modifier = Modifier,
-        )
-    }
-
-    if (showFilters) {
-        CategoryFilterDialog(
-            categories = categories,
-            initialSelectedGroups = filters.selectedGroups,
-            initialSelectedCategoryIds = filters.selectedCategoryIds,
-            onApply = onApply,
-            onDismiss = onDismissFilters,
         )
     }
 }

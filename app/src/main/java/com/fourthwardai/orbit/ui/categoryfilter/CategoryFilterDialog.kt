@@ -1,6 +1,5 @@
 package com.fourthwardai.orbit.ui.categoryfilter
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -51,8 +50,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.extensions.VerticalSpacer
@@ -60,14 +57,14 @@ import com.fourthwardai.orbit.ui.theme.OrbitTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategoryFilterDialog(
+fun CategoryFilterScreen(
     categories: List<Category>,
     initialSelectedGroups: Set<String> = emptySet(),
     initialSelectedCategoryIds: Set<String> = emptySet(),
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    // Local state inside dialog (hoisted out via onApply)
+    // Local state inside screen (hoisted out via onApply)
     var selectedGroups by remember { mutableStateOf(initialSelectedGroups) }
     var selectedCategoryIds by remember { mutableStateOf(initialSelectedCategoryIds) }
 
@@ -85,67 +82,61 @@ fun CategoryFilterDialog(
         }
     }
 
-    val hasAnySelection = selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty()
-
-    Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background,
     ) {
-        Surface(
-            modifier = Modifier.fillMaxSize(),
-            color = MaterialTheme.colorScheme.background,
-        ) {
-            Scaffold(
-                topBar = {
-                    TopAppBar(
-                        title = { Text(stringResource(R.string.filters_title)) },
-                        navigationIcon = {
-                            IconButton(onClick = onDismiss) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.filters_close_description),
-                                )
-                            }
-                        },
-                        actions = {
-                            TextButton(
-                                enabled = hasAnySelection,
-                                onClick = {
-                                    selectedGroups = emptySet()
-                                    selectedCategoryIds = emptySet()
-                                },
-                            ) {
-                                Text(stringResource(R.string.filters_clear_all))
-                            }
-                        },
-                    )
-                },
-            ) { innerPadding ->
-                FilterContent(
-                    modifier = Modifier
-                        .padding(innerPadding)
-                        .fillMaxSize(),
-                    allGroups = allGroups,
-                    visibleCategories = visibleCategories,
-                    selectedGroups = selectedGroups,
-                    selectedCategoryIds = selectedCategoryIds,
-                    onGroupToggled = { group ->
-                        selectedGroups = if (group in selectedGroups) {
-                            selectedGroups - group
-                        } else {
-                            selectedGroups + group
+        Scaffold(
+            topBar = {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.filters_title)) },
+                    navigationIcon = {
+                        IconButton(onClick = onDismiss) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = stringResource(R.string.filters_close_description),
+                            )
                         }
                     },
-                    onApply = { onApply(selectedGroups, selectedCategoryIds) },
-                    onCategoryToggled = { categoryId ->
-                        selectedCategoryIds = if (categoryId in selectedCategoryIds) {
-                            selectedCategoryIds - categoryId
-                        } else {
-                            selectedCategoryIds + categoryId
+                    actions = {
+                        val hasAnySelection = selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty()
+                        TextButton(
+                            enabled = hasAnySelection,
+                            onClick = {
+                                selectedGroups = emptySet()
+                                selectedCategoryIds = emptySet()
+                            },
+                        ) {
+                            Text(stringResource(R.string.filters_clear_all))
                         }
                     },
                 )
-            }
+            },
+        ) { innerPadding ->
+            FilterContent(
+                modifier = Modifier
+                    .padding(innerPadding)
+                    .fillMaxSize(),
+                allGroups = allGroups,
+                visibleCategories = visibleCategories,
+                selectedGroups = selectedGroups,
+                selectedCategoryIds = selectedCategoryIds,
+                onGroupToggled = { group ->
+                    selectedGroups = if (group in selectedGroups) {
+                        selectedGroups - group
+                    } else {
+                        selectedGroups + group
+                    }
+                },
+                onApply = { onApply(selectedGroups, selectedCategoryIds) },
+                onCategoryToggled = { categoryId ->
+                    selectedCategoryIds = if (categoryId in selectedCategoryIds) {
+                        selectedCategoryIds - categoryId
+                    } else {
+                        selectedCategoryIds + categoryId
+                    }
+                },
+            )
         }
     }
 }
@@ -333,7 +324,7 @@ fun CategoryFilterDialogPreview() {
     )
 
     OrbitTheme {
-        CategoryFilterDialog(
+        CategoryFilterScreen(
             categories = sample,
             onApply = { groups, categories ->
                 // TODO: send to ViewModel
