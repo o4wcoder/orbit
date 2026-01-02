@@ -159,7 +159,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
 
         // Intercept system back button when filters overlay is shown so it dismisses the overlay
         if (showFilters) {
-            BackHandler(enabled = true) {
+            BackHandler {
                 showFilters = false
             }
         }
