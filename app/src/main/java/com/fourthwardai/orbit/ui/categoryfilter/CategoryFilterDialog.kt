@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -157,7 +156,7 @@ private fun FilterContent(
             contentPadding = PaddingValues(
                 start = 16.dp,
                 end = 16.dp,
-                bottom = 140.dp,
+                bottom = 100.dp,
             ),
         ) {
             item {
@@ -295,8 +294,7 @@ private fun BottomApplyBar(
 ) {
     Column(
         modifier = modifier
-            .padding(horizontal = 16.dp, vertical = 16.dp)
-            .navigationBarsPadding(),
+            .padding(horizontal = 16.dp, vertical = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Button(
