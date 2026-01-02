@@ -72,6 +72,14 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
     val currentRoute = navBackStackEntry?.destination?.route
     var showFilters by remember { mutableStateOf(false) }
 
+    val newsEntry = remember(navBackStackEntry) {
+        runCatching { navController.getBackStackEntry(Screen.News.route) }.getOrNull()
+    }
+
+    val savedEntry = remember(navBackStackEntry) {
+        runCatching { navController.getBackStackEntry(Screen.Saved.route) }.getOrNull()
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
             modifier = modifier,
@@ -158,15 +166,20 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
 
         // Animated fullscreen filter screen overlay
         AnimatedVisibility(
-            visible = showFilters && navBackStackEntry != null,
-            enter = slideInVertically(initialOffsetY = { fullHeight -> fullHeight }, animationSpec = tween(320)) + fadeIn(animationSpec = tween(320)),
-            exit = slideOutVertically(targetOffsetY = { fullHeight -> fullHeight }, animationSpec = tween(280)) + fadeOut(animationSpec = tween(280)),
+            visible = showFilters && (currentRoute == Screen.News.route || currentRoute == Screen.Saved.route),
+            enter = slideInVertically(
+                initialOffsetY = { fullHeight -> fullHeight },
+                animationSpec = tween(320),
+            ) + fadeIn(animationSpec = tween(320)),
+            exit = slideOutVertically(
+                targetOffsetY = { fullHeight -> fullHeight },
+                animationSpec = tween(280),
+            ) + fadeOut(animationSpec = tween(280)),
         ) {
-            if (navBackStackEntry != null) {
-                when (currentRoute) {
-                    Screen.News.route -> {
-                        val entry = navBackStackEntry!!
-                        val newsVm: NewsFeedViewModel = hiltViewModel(entry)
+            when (currentRoute) {
+                Screen.News.route -> {
+                    newsEntry?.let {
+                        val newsVm: NewsFeedViewModel = hiltViewModel(it)
 
                         CategoryFilterScreen(
                             categories = newsVm.categories.collectAsStateWithLifecycle().value,
@@ -179,10 +192,11 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                             onDismiss = { showFilters = false },
                         )
                     }
+                }
 
-                    Screen.Saved.route -> {
-                        val entry = navBackStackEntry!!
-                        val savedVm: SavedArticlesViewModel = hiltViewModel(entry)
+                Screen.Saved.route -> {
+                    savedEntry?.let {
+                        val savedVm: SavedArticlesViewModel = hiltViewModel(it)
 
                         CategoryFilterScreen(
                             categories = savedVm.categories.collectAsStateWithLifecycle().value,
@@ -195,10 +209,10 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                             onDismiss = { showFilters = false },
                         )
                     }
+                }
 
-                    else -> {
-                        // No overlay for other routes
-                    }
+                else -> {
+                    // No overlay for other routes
                 }
             }
         }
