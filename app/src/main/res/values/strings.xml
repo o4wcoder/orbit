@@ -16,6 +16,9 @@
     <string name="filters_no_categories">No categories in the selected groups</string>
     <string name="filters_remove_description">Remove filter</string>
     <string name="filters_bookmarked">Bookmarked</string>
+    <string name="filters_apply_filters">Apply filters (%d)</string>
+
+    <string name="filters_home_title">Home"</string>
 
     <string name="filters_saved_title">Saved</string>
     <string name="filters_saved_bookmarked_only">Bookmarked only</string>

@@ -304,7 +304,7 @@ private fun BottomApplyBar(
         ) {
             Icon(Icons.Default.Check, contentDescription = null)
             Spacer(Modifier.width(10.dp))
-            Text("Apply Filters ($selectedCount)")
+            Text(stringResource(R.string.filters_apply_filters, selectedCount))
         }
     }
 }
