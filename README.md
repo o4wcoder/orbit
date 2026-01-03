@@ -49,6 +49,25 @@ The app is backed by an automated ingestion pipeline that parses newsletters fro
 - Focuses purely on presentation, interaction, and user experience
 
 ---
+## 🏪 Play Store Status
+
+Orbit is **not currently published on the Google Play Store by design**.
+
+While the app is fully functional and production-quality, publishing it would require requesting **sensitive user permissions** (notably access to personal email data) to support automated newsletter ingestion at scale.
+
+Rather than ship a version that:
+- requires invasive permissions at install time, or
+- compromises user trust for convenience,
+
+this project intentionally remains a **portfolio and architecture reference** demonstrating:
+- end-to-end system design (Android + backend automation)
+- robust content ingestion and normalization
+- modern Android UI development with Compose and Material 3
+- thoughtful product and privacy trade-off decisions
+
+Future iterations of this concept may explore alternative ingestion models (such as explicit forwarding or opt-in integrations) that are more appropriate for public distribution.
+
+---
 
 ## 🖼️ Screenshots & Images
 
