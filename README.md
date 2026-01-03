@@ -70,14 +70,11 @@ Future iterations of this concept may explore alternative ingestion models (such
 ---
 
 ## 🖼️ Screenshots & Images
+| Article Feed|Filters|Settings|
+|:---------:|:---------:|:---------:|
+<img width="1080" height="2400" alt="Screenshot_20260103_161007" src="https://github.com/user-attachments/assets/b3168bd2-e021-4d17-bfde-747cb03097f6" />|<img width="1080" height="2400" alt="Screenshot_20260103_160222" src="https://github.com/user-attachments/assets/17bf442d-c9b4-4777-a7ee-2d23c039bd61" />|<img width="1080" height="2400" alt="Screenshot_20260103_160236" src="https://github.com/user-attachments/assets/b53d7cdb-0493-48e7-98e0-2998d47b4f04" />
 
-> Screenshots, UI previews, and diagrams will be added here.
 
-<!--
-Example:
-![Feed Screen](images/feed.png)
-![Article Detail](images/article_detail.png)
--->
 
 ---
 
