@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +27,12 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -38,6 +44,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -51,6 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
@@ -62,6 +70,7 @@ import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 import kotlinx.coroutines.flow.flowOf
+import timber.log.Timber
 
 private const val MEDIUM_PACKAGE = "com.medium.reader"
 
@@ -118,6 +127,11 @@ private fun ArticleFeedContent(
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    LaunchedEffect(pagedArticles) {
+        snapshotFlow { pagedArticles.loadState.append }
+            .collect { Timber.d("CGH append state = $it") }
+    }
+
     // No Scaffold here — the top app bar is owned by the app-level Scaffold in OrbitAppNavHost
     BoxWithConstraints(modifier = modifier) {
         val context = LocalContext.current
@@ -140,7 +154,8 @@ private fun ArticleFeedContent(
             state = pullState,
             isRefreshing = uiModel.isRefreshing,
             onRefresh = onRefresh,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
                 .background(color = MaterialTheme.colorScheme.background),
             indicator = {
                 if (isRefreshEnabled) {
@@ -152,73 +167,97 @@ private fun ArticleFeedContent(
                 }
             },
         ) {
-            when (val state = uiModel) {
-                is NewsFeedUiModel.Loading -> {}
+            when (val state = pagedArticles.loadState.refresh) {
+                is LoadState.Loading -> {}
+                is LoadState.Error -> {
+                    // TODO: Need to show error state
+                }
 
-                is NewsFeedUiModel.Content -> {
-                    if (widthSizeClass == WindowWidthSizeClass.Compact) {
-                        // Phone: single column list
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 16.dp),
-                        ) {
-                            item {
-                                VerticalSpacer(16.dp)
-                            }
-                            items(
-                                pagedArticles.itemCount,
-                                key = { index ->
-                                    pagedArticles[index]?.id ?: "placeholder-$index"
-                                },
-                            ) { index ->
-                                val article = pagedArticles[index] ?: return@items
-
-                                ArticleCard(
-                                    article,
-                                    onBookmarkClick = onBookmarkClick,
-                                    modifier = Modifier.clickable(
-                                        role = Role.Button,
-                                        onClick = { openMediumOrBrowser(context, article.url) },
-                                    ),
-                                )
-                                VerticalSpacer(16.dp)
-                            }
-                        }
+                is LoadState.NotLoading -> {
+                    if (pagedArticles.itemCount == 0) {
+                        // replaces NewsFeedUiModel.Empty
+                        EmptyMessage()
                     } else {
-                        // Tablet: staggered grid with 2 columns and spacing between cells
-                        LazyVerticalStaggeredGrid(
-                            state = staggeredGridState,
-                            columns = StaggeredGridCells.Fixed(2),
-                            modifier = Modifier.fillMaxSize(),
-                            // increase content padding so outer edges are separated from screen edges
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
-                        ) {
-                            items(
-                                pagedArticles.itemCount,
-                                key = { index ->
-                                    pagedArticles[index]?.id ?: "placeholder-$index"
-                                },
-                            ) { index ->
-                                val article = pagedArticles[index] ?: return@items
-                                ArticleCard(
-                                    article,
-                                    onBookmarkClick = onBookmarkClick,
-                                    modifier = Modifier
-                                        .padding(12.dp)
-                                        .clickable(
+                        if (widthSizeClass == WindowWidthSizeClass.Compact) {
+                            // Phone: single column list
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(horizontal = 16.dp),
+                            ) {
+                                item {
+                                    VerticalSpacer(16.dp)
+                                }
+                                items(
+                                    pagedArticles.itemCount,
+                                    key = { index ->
+                                        pagedArticles[index]?.id ?: "placeholder-$index"
+                                    },
+                                ) { index ->
+                                    val article = pagedArticles[index] ?: return@items
+
+                                    ArticleCard(
+                                        article,
+                                        onBookmarkClick = onBookmarkClick,
+                                        modifier = Modifier.clickable(
                                             role = Role.Button,
                                             onClick = { openMediumOrBrowser(context, article.url) },
                                         ),
-                                )
+                                    )
+                                    VerticalSpacer(16.dp)
+                                }
+
+                                when (val append = pagedArticles.loadState.append) {
+                                    is LoadState.Loading -> item { FooterLoading() }
+                                    is LoadState.Error -> item { FooterError(onRetry = { pagedArticles.retry() }) }
+                                    else -> Unit
+                                }
+                            }
+                        } else {
+                            // Tablet: staggered grid with 2 columns and spacing between cells
+                            LazyVerticalStaggeredGrid(
+                                state = staggeredGridState,
+                                columns = StaggeredGridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize(),
+                                // increase content padding so outer edges are separated from screen edges
+                                contentPadding = PaddingValues(
+                                    horizontal = 24.dp,
+                                    vertical = 24.dp,
+                                ),
+                            ) {
+                                items(
+                                    pagedArticles.itemCount,
+                                    key = { index ->
+                                        pagedArticles[index]?.id ?: "placeholder-$index"
+                                    },
+                                ) { index ->
+                                    val article = pagedArticles[index] ?: return@items
+                                    ArticleCard(
+                                        article,
+                                        onBookmarkClick = onBookmarkClick,
+                                        modifier = Modifier
+                                            .padding(12.dp)
+                                            .clickable(
+                                                role = Role.Button,
+                                                onClick = {
+                                                    openMediumOrBrowser(
+                                                        context,
+                                                        article.url,
+                                                    )
+                                                },
+                                            ),
+                                    )
+                                }
+
+                                when (val append = pagedArticles.loadState.append) {
+                                    is LoadState.Loading -> item { FooterLoading() }
+                                    is LoadState.Error -> item { FooterError(onRetry = { pagedArticles.retry() }) }
+                                    else -> Unit
+                                }
                             }
                         }
                     }
-                }
-
-                NewsFeedUiModel.Empty -> {
-                    EmptyMessage()
                 }
             }
         }
@@ -237,7 +276,9 @@ private fun EmptyMessage(modifier: Modifier = Modifier) {
                 painter = painterResource(R.drawable.empty_articles),
                 contentDescription = null,
                 contentScale = ContentScale.FillWidth,
-                modifier = Modifier.align(Alignment.CenterHorizontally).height(200.dp),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .height(200.dp),
             )
 
             Text(
@@ -245,6 +286,60 @@ private fun EmptyMessage(modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
+        }
+    }
+}
+
+@Composable
+private fun FooterLoading(modifier: Modifier = Modifier) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.Refresh,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        VerticalSpacer(8.dp)
+
+        Text(
+            text = stringResource(R.string.loading_more_articles),
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+}
+
+@Composable
+private fun FooterError(modifier: Modifier = Modifier, onRetry: () -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.CloudOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        VerticalSpacer(8.dp)
+        Text(
+            text = stringResource(R.string.error_loading_more_articles),
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        VerticalSpacer(8.dp)
+
+        FilledTonalButton(onClick = onRetry) {
+            Text(text = stringResource(R.string.error_loading_more_articles_retry))
         }
     }
 }
@@ -326,12 +421,36 @@ fun ArticleFeedTabletPreview() {
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Preview(showBackground = true)
 @Composable
-fun EmptyNewsFeedPreview() {
+private fun EmptyNewsFeedPreview() {
     OrbitTheme {
         CompositionLocalProvider(
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
             EmptyMessage()
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun FooterLoadingPreview() {
+    OrbitTheme {
+        FooterLoading()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun FooterErrorPreview() {
+    OrbitTheme {
+        FooterError(onRetry = {})
+    }
+}
+
+@Preview()
+@Composable
+private fun FooterErrorPreviewDark() {
+    OrbitTheme(darkTheme = true) {
+        FooterError(onRetry = {})
     }
 }

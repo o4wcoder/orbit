@@ -40,7 +40,7 @@ class ArticleListViewModelDelegate(
 
     private val _filter = MutableStateFlow(FeedFilter(bookmarkedOnly = bookmarkedOnlyDefault))
     val filter = _filter.asStateFlow()
-    
+
     val pagedArticles: Flow<PagingData<Article>> =
         _filter
             .flatMapLatest { filter ->
