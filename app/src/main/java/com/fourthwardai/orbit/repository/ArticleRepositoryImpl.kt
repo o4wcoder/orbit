@@ -1,6 +1,10 @@
 package com.fourthwardai.orbit.repository
 
 import android.content.Context
+import androidx.paging.Pager
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.map
 import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.data.local.toDomain
@@ -19,6 +23,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -155,6 +160,20 @@ class ArticleRepositoryImpl @Inject constructor(
 
     override suspend fun getCategories(): ApiResult<List<Category>> = withContext(ioDispatcher) {
         service.fetchArticleCategories()
+    }
+
+    override fun pagedArticles(): Flow<PagingData<Article>> {
+        return Pager(
+            config = PagingConfig(
+                pageSize = 30,
+                prefetchDistance = 10,
+                enablePlaceholders = false,
+            ),
+            pagingSourceFactory = { articleDao.pagingSource() },
+        ).flow
+            .map { pagingData ->
+                pagingData.map { it.toDomain() }
+            }
     }
 
     private fun mapArticlesWithCategories(articles: List<Article>): List<ArticleWithCategories> =

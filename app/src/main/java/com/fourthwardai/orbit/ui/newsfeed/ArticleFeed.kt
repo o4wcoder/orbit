@@ -51,12 +51,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.paging.PagingData
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.fourthwardai.orbit.R
+import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import kotlinx.coroutines.flow.flowOf
 
 private const val MEDIUM_PACKAGE = "com.medium.reader"
 
@@ -64,6 +69,7 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 @Composable
 fun ArticleFeed(
     uiModel: NewsFeedUiModel,
+    pagedArticles: LazyPagingItems<Article>,
     categories: List<Category>,
     filters: FeedFilter,
     onRefresh: () -> Unit,
@@ -90,6 +96,7 @@ fun ArticleFeed(
 
         ArticleFeedContent(
             uiModel = uiModel,
+            pagedArticles = pagedArticles,
             listState = listState,
             staggeredGridState = staggeredGridState,
             isRefreshEnabled = isRefreshEnabled,
@@ -103,6 +110,7 @@ fun ArticleFeed(
 @Composable
 private fun ArticleFeedContent(
     uiModel: NewsFeedUiModel,
+    pagedArticles: LazyPagingItems<Article>,
     listState: LazyListState,
     staggeredGridState: LazyStaggeredGridState,
     isRefreshEnabled: Boolean,
@@ -160,9 +168,12 @@ private fun ArticleFeedContent(
                                 VerticalSpacer(16.dp)
                             }
                             items(
-                                state.articles,
-                                key = { article -> article.id },
-                            ) { article ->
+                                pagedArticles.itemCount,
+                                key = { index ->
+                                    pagedArticles[index]?.id ?: "placeholder-$index"
+                                },
+                            ) { index ->
+                                val article = pagedArticles[index] ?: return@items
 
                                 ArticleCard(
                                     article,
@@ -185,10 +196,12 @@ private fun ArticleFeedContent(
                             contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
                         ) {
                             items(
-                                state.articles,
-                                key = { article -> article.id },
-                            ) { article ->
-
+                                pagedArticles.itemCount,
+                                key = { index ->
+                                    pagedArticles[index]?.id ?: "placeholder-$index"
+                                },
+                            ) { index ->
+                                val article = pagedArticles[index] ?: return@items
                                 ArticleCard(
                                     article,
                                     onBookmarkClick = onBookmarkClick,
@@ -261,10 +274,16 @@ fun ArticleFeedPreview() {
         CompositionLocalProvider(
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
+            val fakeArticles =
+                listOf(
+                    getArticlePreviewData("1"),
+                    getArticlePreviewData("2"),
+                )
+            val fakeFlow = flowOf(PagingData.from(fakeArticles))
+            val items = fakeFlow.collectAsLazyPagingItems()
             ArticleFeedContent(
-                uiModel = NewsFeedUiModel.Content(
-                    articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2")),
-                ),
+                uiModel = NewsFeedUiModel.Content(),
+                pagedArticles = items,
                 listState = rememberLazyListState(),
                 isRefreshEnabled = true,
                 staggeredGridState = rememberLazyStaggeredGridState(),
@@ -283,10 +302,17 @@ fun ArticleFeedTabletPreview() {
         CompositionLocalProvider(
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
+            val fakeArticles =
+                listOf(
+                    getArticlePreviewData("1"),
+                    getArticlePreviewData("2"),
+                    getArticlePreviewData("3"),
+                )
+            val fakeFlow = flowOf(PagingData.from(fakeArticles))
+            val items = fakeFlow.collectAsLazyPagingItems()
             ArticleFeedContent(
-                uiModel = NewsFeedUiModel.Content(
-                    articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2"), getArticlePreviewData("3")),
-                ),
+                uiModel = NewsFeedUiModel.Content(),
+                pagedArticles = items,
                 listState = rememberLazyListState(),
                 isRefreshEnabled = true,
                 staggeredGridState = rememberLazyStaggeredGridState(),
