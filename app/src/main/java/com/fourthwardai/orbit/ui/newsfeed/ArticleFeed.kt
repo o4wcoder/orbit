@@ -44,7 +44,6 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -70,7 +69,6 @@ import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
 import kotlinx.coroutines.flow.flowOf
-import timber.log.Timber
 
 private const val MEDIUM_PACKAGE = "com.medium.reader"
 
@@ -127,11 +125,6 @@ private fun ArticleFeedContent(
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    LaunchedEffect(pagedArticles) {
-        snapshotFlow { pagedArticles.loadState.append }
-            .collect { Timber.d("CGH append state = $it") }
-    }
-
     // No Scaffold here — the top app bar is owned by the app-level Scaffold in OrbitAppNavHost
     BoxWithConstraints(modifier = modifier) {
         val context = LocalContext.current
@@ -167,94 +160,97 @@ private fun ArticleFeedContent(
                 }
             },
         ) {
-            when (val state = pagedArticles.loadState.refresh) {
-                is LoadState.Loading -> {}
-                is LoadState.Error -> {
-                    // TODO: Need to show error state
+            val refreshState = pagedArticles.loadState.refresh
+            val hasItems = pagedArticles.itemCount > 0
+
+            when {
+                refreshState is LoadState.Error && !hasItems -> {
+                    // full screen error
                 }
 
-                is LoadState.NotLoading -> {
-                    if (pagedArticles.itemCount == 0) {
-                        // replaces NewsFeedUiModel.Empty
-                        EmptyMessage()
-                    } else {
-                        if (widthSizeClass == WindowWidthSizeClass.Compact) {
-                            // Phone: single column list
-                            LazyColumn(
-                                state = listState,
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(horizontal = 16.dp),
-                            ) {
-                                item {
-                                    VerticalSpacer(16.dp)
-                                }
-                                items(
-                                    pagedArticles.itemCount,
-                                    key = { index ->
-                                        pagedArticles[index]?.id ?: "placeholder-$index"
-                                    },
-                                ) { index ->
-                                    val article = pagedArticles[index] ?: return@items
+                !hasItems && refreshState is LoadState.Loading -> {}
 
-                                    ArticleCard(
-                                        article,
-                                        onBookmarkClick = onBookmarkClick,
-                                        modifier = Modifier.clickable(
-                                            role = Role.Button,
-                                            onClick = { openMediumOrBrowser(context, article.url) },
-                                        ),
-                                    )
-                                    VerticalSpacer(16.dp)
-                                }
+                !hasItems && refreshState is LoadState.NotLoading -> {
+                    EmptyMessage()
+                }
 
-                                when (val append = pagedArticles.loadState.append) {
-                                    is LoadState.Loading -> item { FooterLoading() }
-                                    is LoadState.Error -> item { FooterError(onRetry = { pagedArticles.retry() }) }
-                                    else -> Unit
-                                }
+                else -> {
+                    if (widthSizeClass == WindowWidthSizeClass.Compact) {
+                        // Phone: single column list
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(horizontal = 16.dp),
+                        ) {
+                            item {
+                                VerticalSpacer(16.dp)
                             }
-                        } else {
-                            // Tablet: staggered grid with 2 columns and spacing between cells
-                            LazyVerticalStaggeredGrid(
-                                state = staggeredGridState,
-                                columns = StaggeredGridCells.Fixed(2),
-                                modifier = Modifier.fillMaxSize(),
-                                // increase content padding so outer edges are separated from screen edges
-                                contentPadding = PaddingValues(
-                                    horizontal = 24.dp,
-                                    vertical = 24.dp,
-                                ),
-                            ) {
-                                items(
-                                    pagedArticles.itemCount,
-                                    key = { index ->
-                                        pagedArticles[index]?.id ?: "placeholder-$index"
-                                    },
-                                ) { index ->
-                                    val article = pagedArticles[index] ?: return@items
-                                    ArticleCard(
-                                        article,
-                                        onBookmarkClick = onBookmarkClick,
-                                        modifier = Modifier
-                                            .padding(12.dp)
-                                            .clickable(
-                                                role = Role.Button,
-                                                onClick = {
-                                                    openMediumOrBrowser(
-                                                        context,
-                                                        article.url,
-                                                    )
-                                                },
-                                            ),
-                                    )
-                                }
+                            items(
+                                pagedArticles.itemCount,
+                                key = { index ->
+                                    pagedArticles[index]?.id ?: "placeholder-$index"
+                                },
+                            ) { index ->
+                                val article = pagedArticles[index] ?: return@items
 
-                                when (val append = pagedArticles.loadState.append) {
-                                    is LoadState.Loading -> item { FooterLoading() }
-                                    is LoadState.Error -> item { FooterError(onRetry = { pagedArticles.retry() }) }
-                                    else -> Unit
-                                }
+                                ArticleCard(
+                                    article,
+                                    onBookmarkClick = onBookmarkClick,
+                                    modifier = Modifier.clickable(
+                                        role = Role.Button,
+                                        onClick = { openMediumOrBrowser(context, article.url) },
+                                    ),
+                                )
+                                VerticalSpacer(16.dp)
+                            }
+
+                            when (val append = pagedArticles.loadState.append) {
+                                is LoadState.Loading -> item { FooterLoading() }
+                                is LoadState.Error -> item { FooterError(onRetry = { pagedArticles.retry() }) }
+                                else -> Unit
+                            }
+                        }
+                    } else {
+                        // Tablet: staggered grid with 2 columns and spacing between cells
+                        LazyVerticalStaggeredGrid(
+                            state = staggeredGridState,
+                            columns = StaggeredGridCells.Fixed(2),
+                            modifier = Modifier.fillMaxSize(),
+                            // increase content padding so outer edges are separated from screen edges
+                            contentPadding = PaddingValues(
+                                horizontal = 24.dp,
+                                vertical = 24.dp,
+                            ),
+                        ) {
+                            items(
+                                pagedArticles.itemCount,
+                                key = { index ->
+                                    pagedArticles[index]?.id ?: "placeholder-$index"
+                                },
+                            ) { index ->
+                                val article = pagedArticles[index] ?: return@items
+                                ArticleCard(
+                                    article,
+                                    onBookmarkClick = onBookmarkClick,
+                                    modifier = Modifier
+                                        .padding(12.dp)
+                                        .clickable(
+                                            role = Role.Button,
+                                            onClick = {
+                                                openMediumOrBrowser(
+                                                    context,
+                                                    article.url,
+                                                )
+                                            },
+                                        ),
+                                )
+                            }
+
+                            when (val append = pagedArticles.loadState.append) {
+                                is LoadState.Loading -> item { FooterLoading() }
+                                is LoadState.Error -> item { FooterError(onRetry = { pagedArticles.retry() }) }
+                                else -> Unit
                             }
                         }
                     }
