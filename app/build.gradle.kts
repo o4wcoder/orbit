@@ -131,6 +131,7 @@ spotless {
         ktlint("1.0.1").editorConfigOverride(
             mapOf(
                 "ktlint_standard_function-naming" to "disabled",
+                "ktlint_standard_property-naming" to "disabled",
             ),
         )
     }

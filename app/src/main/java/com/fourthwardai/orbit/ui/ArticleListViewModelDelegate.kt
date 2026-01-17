@@ -20,8 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -49,16 +47,15 @@ class ArticleListViewModelDelegate(
                     .map { pagingData ->
                         pagingData.filter { article ->
                             val matchesGroup = filter.selectedGroups.isEmpty() ||
-                                    article.categories.any { it.group in filter.selectedGroups }
+                                article.categories.any { it.group in filter.selectedGroups }
                             val matchesCategory = filter.selectedCategoryIds.isEmpty() ||
-                                    article.categories.any { it.id in filter.selectedCategoryIds }
+                                article.categories.any { it.id in filter.selectedCategoryIds }
                             val matchesBookmarked = !filter.bookmarkedOnly || article.isBookmarked
                             matchesGroup && matchesCategory && matchesBookmarked
                         }
                     }
             }
             .cachedIn(viewModelScope)
-
 
     private val _dataState = MutableStateFlow(NewsFeedDataState())
 
@@ -84,7 +81,7 @@ class ArticleListViewModelDelegate(
         _filter.update {
             it.copy(
                 selectedGroups = selectedGroups,
-                selectedCategoryIds = selectedCategoryIds
+                selectedCategoryIds = selectedCategoryIds,
             )
         }
     }

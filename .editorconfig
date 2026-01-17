@@ -1,1 +1,4 @@
-ktlint_disabled_rules=standard:property-naming
+[*.kt]
+ktlint_standard_property-naming=disabled
+
+
