@@ -81,9 +81,8 @@ class ArticleRepositoryImpl @Inject constructor(
 
         when (val result = service.bookmarkArticle(id, isBookmarked)) {
             is ApiResult.Success -> {
-                // Mark as synced
-                //  articleDao.insert(updatedEntity.copy(isDirty = false))
-                scheduleArticleSync(context)
+                // Mark as synced immediately since network call succeeded
+                articleDao.insert(updatedEntity.copy(isDirty = false))
                 ApiResult.Success(Unit)
             }
             is ApiResult.Failure -> {
