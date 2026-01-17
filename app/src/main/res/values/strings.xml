@@ -27,11 +27,10 @@
     <!-- Empty articles message -->
     <string name="empty_articles_title">No articles found</string>
 
-    <!-- Trends -->
-    <string name="trends_query_hint">Describe the trend you want to research...</string>
-    <string name="trends_query_label">Trend Query</string>
-    <string name="trends_research">Research</string>
-    <string name="trends_cancel">Cancel</string>
+    <!-- Page footer strings -->
+    <string name="loading_more_articles">Loading more articles…</string>
+    <string name="error_loading_more_articles">Error loading more articles</string>
+    <string name="error_loading_more_articles_retry">Retry</string>
 
     <!-- Settings screen strings -->
     <string name="settings_appearance">Appearance</string>

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -26,7 +27,12 @@ import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
 import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
@@ -51,12 +57,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
+import androidx.paging.LoadState
+import androidx.paging.PagingData
+import androidx.paging.compose.LazyPagingItems
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.fourthwardai.orbit.R
+import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import kotlinx.coroutines.flow.flowOf
 
 private const val MEDIUM_PACKAGE = "com.medium.reader"
 
@@ -64,6 +76,7 @@ private const val MEDIUM_PACKAGE = "com.medium.reader"
 @Composable
 fun ArticleFeed(
     uiModel: NewsFeedUiModel,
+    pagedArticles: LazyPagingItems<Article>,
     categories: List<Category>,
     filters: FeedFilter,
     onRefresh: () -> Unit,
@@ -90,6 +103,7 @@ fun ArticleFeed(
 
         ArticleFeedContent(
             uiModel = uiModel,
+            pagedArticles = pagedArticles,
             listState = listState,
             staggeredGridState = staggeredGridState,
             isRefreshEnabled = isRefreshEnabled,
@@ -103,6 +117,7 @@ fun ArticleFeed(
 @Composable
 private fun ArticleFeedContent(
     uiModel: NewsFeedUiModel,
+    pagedArticles: LazyPagingItems<Article>,
     listState: LazyListState,
     staggeredGridState: LazyStaggeredGridState,
     isRefreshEnabled: Boolean,
@@ -132,7 +147,8 @@ private fun ArticleFeedContent(
             state = pullState,
             isRefreshing = uiModel.isRefreshing,
             onRefresh = onRefresh,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
                 .background(color = MaterialTheme.colorScheme.background),
             indicator = {
                 if (isRefreshEnabled) {
@@ -144,10 +160,21 @@ private fun ArticleFeedContent(
                 }
             },
         ) {
-            when (val state = uiModel) {
-                is NewsFeedUiModel.Loading -> {}
+            val refreshState = pagedArticles.loadState.refresh
+            val hasItems = pagedArticles.itemCount > 0
 
-                is NewsFeedUiModel.Content -> {
+            when {
+                refreshState is LoadState.Error && !hasItems -> {
+                    // full screen error
+                }
+
+                !hasItems && refreshState is LoadState.Loading -> {}
+
+                !hasItems && refreshState is LoadState.NotLoading -> {
+                    EmptyMessage()
+                }
+
+                else -> {
                     if (widthSizeClass == WindowWidthSizeClass.Compact) {
                         // Phone: single column list
                         LazyColumn(
@@ -160,9 +187,12 @@ private fun ArticleFeedContent(
                                 VerticalSpacer(16.dp)
                             }
                             items(
-                                state.articles,
-                                key = { article -> article.id },
-                            ) { article ->
+                                pagedArticles.itemCount,
+                                key = { index ->
+                                    pagedArticles[index]?.id ?: "placeholder-$index"
+                                },
+                            ) { index ->
+                                val article = pagedArticles[index] ?: return@items
 
                                 ArticleCard(
                                     article,
@@ -174,6 +204,12 @@ private fun ArticleFeedContent(
                                 )
                                 VerticalSpacer(16.dp)
                             }
+
+                            when (val append = pagedArticles.loadState.append) {
+                                is LoadState.Loading -> item { FooterLoading() }
+                                is LoadState.Error -> item { FooterError(onRetry = { pagedArticles.retry() }) }
+                                else -> Unit
+                            }
                         }
                     } else {
                         // Tablet: staggered grid with 2 columns and spacing between cells
@@ -182,13 +218,18 @@ private fun ArticleFeedContent(
                             columns = StaggeredGridCells.Fixed(2),
                             modifier = Modifier.fillMaxSize(),
                             // increase content padding so outer edges are separated from screen edges
-                            contentPadding = PaddingValues(horizontal = 24.dp, vertical = 24.dp),
+                            contentPadding = PaddingValues(
+                                horizontal = 24.dp,
+                                vertical = 24.dp,
+                            ),
                         ) {
                             items(
-                                state.articles,
-                                key = { article -> article.id },
-                            ) { article ->
-
+                                pagedArticles.itemCount,
+                                key = { index ->
+                                    pagedArticles[index]?.id ?: "placeholder-$index"
+                                },
+                            ) { index ->
+                                val article = pagedArticles[index] ?: return@items
                                 ArticleCard(
                                     article,
                                     onBookmarkClick = onBookmarkClick,
@@ -196,16 +237,23 @@ private fun ArticleFeedContent(
                                         .padding(12.dp)
                                         .clickable(
                                             role = Role.Button,
-                                            onClick = { openMediumOrBrowser(context, article.url) },
+                                            onClick = {
+                                                openMediumOrBrowser(
+                                                    context,
+                                                    article.url,
+                                                )
+                                            },
                                         ),
                                 )
                             }
+
+                            when (val append = pagedArticles.loadState.append) {
+                                is LoadState.Loading -> item { FooterLoading() }
+                                is LoadState.Error -> item { FooterError(onRetry = { pagedArticles.retry() }) }
+                                else -> Unit
+                            }
                         }
                     }
-                }
-
-                NewsFeedUiModel.Empty -> {
-                    EmptyMessage()
                 }
             }
         }
@@ -224,7 +272,9 @@ private fun EmptyMessage(modifier: Modifier = Modifier) {
                 painter = painterResource(R.drawable.empty_articles),
                 contentDescription = null,
                 contentScale = ContentScale.FillWidth,
-                modifier = Modifier.align(Alignment.CenterHorizontally).height(200.dp),
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .height(200.dp),
             )
 
             Text(
@@ -232,6 +282,60 @@ private fun EmptyMessage(modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
             )
+        }
+    }
+}
+
+@Composable
+private fun FooterLoading(modifier: Modifier = Modifier) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.Refresh,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        VerticalSpacer(8.dp)
+
+        Text(
+            text = stringResource(R.string.loading_more_articles),
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+    }
+}
+
+@Composable
+private fun FooterError(modifier: Modifier = Modifier, onRetry: () -> Unit) {
+    Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+    ) {
+        Icon(
+            imageVector = Icons.Default.CloudOff,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+        )
+        VerticalSpacer(8.dp)
+        Text(
+            text = stringResource(R.string.error_loading_more_articles),
+            fontWeight = FontWeight.Medium,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onBackground,
+        )
+        VerticalSpacer(8.dp)
+
+        FilledTonalButton(onClick = onRetry) {
+            Text(text = stringResource(R.string.error_loading_more_articles_retry))
         }
     }
 }
@@ -261,10 +365,16 @@ fun ArticleFeedPreview() {
         CompositionLocalProvider(
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
+            val fakeArticles =
+                listOf(
+                    getArticlePreviewData("1"),
+                    getArticlePreviewData("2"),
+                )
+            val fakeFlow = flowOf(PagingData.from(fakeArticles))
+            val items = fakeFlow.collectAsLazyPagingItems()
             ArticleFeedContent(
-                uiModel = NewsFeedUiModel.Content(
-                    articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2")),
-                ),
+                uiModel = NewsFeedUiModel.Content(),
+                pagedArticles = items,
                 listState = rememberLazyListState(),
                 isRefreshEnabled = true,
                 staggeredGridState = rememberLazyStaggeredGridState(),
@@ -283,10 +393,17 @@ fun ArticleFeedTabletPreview() {
         CompositionLocalProvider(
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
+            val fakeArticles =
+                listOf(
+                    getArticlePreviewData("1"),
+                    getArticlePreviewData("2"),
+                    getArticlePreviewData("3"),
+                )
+            val fakeFlow = flowOf(PagingData.from(fakeArticles))
+            val items = fakeFlow.collectAsLazyPagingItems()
             ArticleFeedContent(
-                uiModel = NewsFeedUiModel.Content(
-                    articles = listOf(getArticlePreviewData("1"), getArticlePreviewData("2"), getArticlePreviewData("3")),
-                ),
+                uiModel = NewsFeedUiModel.Content(),
+                pagedArticles = items,
                 listState = rememberLazyListState(),
                 isRefreshEnabled = true,
                 staggeredGridState = rememberLazyStaggeredGridState(),
@@ -300,12 +417,36 @@ fun ArticleFeedTabletPreview() {
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Preview(showBackground = true)
 @Composable
-fun EmptyNewsFeedPreview() {
+private fun EmptyNewsFeedPreview() {
     OrbitTheme {
         CompositionLocalProvider(
             LocalWindowClassSize provides WindowSizeClass.calculateFromSize(DpSize(1280.dp, 800.dp)),
         ) {
             EmptyMessage()
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun FooterLoadingPreview() {
+    OrbitTheme {
+        FooterLoading()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun FooterErrorPreview() {
+    OrbitTheme {
+        FooterError(onRetry = {})
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun FooterErrorPreviewDark() {
+    OrbitTheme(darkTheme = true) {
+        FooterError(onRetry = {})
     }
 }

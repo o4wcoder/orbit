@@ -88,6 +88,8 @@ dependencies {
     implementation(libs.androidx.compose.runtime)
     implementation(libs.hilt.android)
     implementation(libs.androidx.datastore.preferences)
+    implementation(libs.androidx.paging.runtime)
+    implementation(libs.androidx.paging.compose)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.logging)
@@ -97,6 +99,7 @@ dependencies {
 
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
+    implementation(libs.androidx.room.paging)
     kapt(libs.room.compiler)
 
     kapt(libs.hilt.compiler)
@@ -128,6 +131,7 @@ spotless {
         ktlint("1.0.1").editorConfigOverride(
             mapOf(
                 "ktlint_standard_function-naming" to "disabled",
+                "ktlint_standard_property-naming" to "disabled",
             ),
         )
     }

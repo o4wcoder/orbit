@@ -1,5 +1,6 @@
 package com.fourthwardai.orbit.data.local
 
+import androidx.paging.PagingSource
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
@@ -62,4 +63,8 @@ interface ArticleDao {
 
     @Query("SELECT * FROM articles WHERE id = :id LIMIT 1")
     suspend fun getById(id: String): ArticleEntity?
+
+    @Transaction
+    @Query("SELECT * FROM articles ORDER BY ingestedAt DESC")
+    fun pagingSource(): PagingSource<Int, ArticleWithCategories>
 }

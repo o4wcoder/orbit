@@ -22,6 +22,8 @@ class NewsFeedViewModel @Inject constructor(
     val filter = delegate.filter
     val uiState = delegate.uiState
 
+    val pagedArticles = delegate.pagedArticles
+
     fun onFiltersApplied(selectedGroups: Set<String>, selectedCategoryIds: Set<String>) {
         delegate.applyFilters(selectedGroups, selectedCategoryIds)
     }

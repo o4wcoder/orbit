@@ -44,6 +44,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.paging.compose.collectAsLazyPagingItems
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.ui.categoryfilter.CategoryFilterScreen
 import com.fourthwardai.orbit.ui.newsfeed.ArticleFeed
@@ -125,8 +126,10 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 composable(Screen.News.route) {
                     val viewModel: NewsFeedViewModel = hiltViewModel()
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                    val pagedArticles = viewModel.pagedArticles.collectAsLazyPagingItems()
                     ArticleFeed(
                         uiModel = uiState,
+                        pagedArticles = pagedArticles,
                         categories = viewModel.categories.collectAsStateWithLifecycle().value,
                         filters = viewModel.filter.collectAsStateWithLifecycle().value,
                         onRefresh = viewModel::refreshArticles,
@@ -139,8 +142,10 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 composable(Screen.Saved.route) {
                     val viewModel: SavedArticlesViewModel = hiltViewModel()
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                    val pagedArticles = viewModel.pagedArticles.collectAsLazyPagingItems()
                     ArticleFeed(
                         uiModel = uiState,
+                        pagedArticles = pagedArticles,
                         categories = viewModel.categories.collectAsStateWithLifecycle().value,
                         filters = viewModel.filter.collectAsStateWithLifecycle().value,
                         isRefreshEnabled = false,

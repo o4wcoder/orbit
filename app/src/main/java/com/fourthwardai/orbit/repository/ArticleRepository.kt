@@ -1,8 +1,10 @@
 package com.fourthwardai.orbit.repository
 
+import androidx.paging.PagingData
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiResult
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 interface ArticleRepository {
@@ -36,6 +38,14 @@ interface ArticleRepository {
      * or Failure when any transient error occurs (worker can retry).
      */
     suspend fun syncDirtyArticles(): ApiResult<Unit>
+
+    /**
+     * Returns a cold Flow of paged articles backed by Room.
+     *
+     * The Flow does not execute any queries until collected.
+     * Paging controls when and how data is loaded.
+     */
+    fun pagedArticles(): Flow<PagingData<Article>>
 
     // 🔮 Future (when you add server-side filtering/paging):
     // suspend fun fetchArticlesPage(query: ArticleQuery): ApiResult<ArticlePage>
