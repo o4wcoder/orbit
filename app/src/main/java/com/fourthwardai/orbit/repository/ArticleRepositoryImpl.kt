@@ -12,6 +12,7 @@ import com.fourthwardai.orbit.data.local.toEntity
 import com.fourthwardai.orbit.di.IODispatcher
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
+import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.network.isTransient
@@ -162,14 +163,51 @@ class ArticleRepositoryImpl @Inject constructor(
         service.fetchArticleCategories()
     }
 
-    override fun pagedArticles(): Flow<PagingData<Article>> {
+    override fun pagedArticles(filter: FeedFilter): Flow<PagingData<Article>> {
+        val pagingSourceFactory = {
+            when {
+                // Both groups and categoryIds are specified
+                filter.selectedGroups.isNotEmpty() && filter.selectedCategoryIds.isNotEmpty() -> {
+                    if (filter.bookmarkedOnly) {
+                        articleDao.pagingSourceByGroupsAndCategoryIdsBookmarked(filter.selectedGroups, filter.selectedCategoryIds)
+                    } else {
+                        articleDao.pagingSourceByGroupsAndCategoryIds(filter.selectedGroups, filter.selectedCategoryIds)
+                    }
+                }
+                // Only groups are specified
+                filter.selectedGroups.isNotEmpty() -> {
+                    if (filter.bookmarkedOnly) {
+                        articleDao.pagingSourceByGroupsBookmarked(filter.selectedGroups)
+                    } else {
+                        articleDao.pagingSourceByGroups(filter.selectedGroups)
+                    }
+                }
+                // Only categoryIds are specified
+                filter.selectedCategoryIds.isNotEmpty() -> {
+                    if (filter.bookmarkedOnly) {
+                        articleDao.pagingSourceByCategoryIdsBookmarked(filter.selectedCategoryIds)
+                    } else {
+                        articleDao.pagingSourceByCategoryIds(filter.selectedCategoryIds)
+                    }
+                }
+                // Only bookmarkedOnly is specified
+                filter.bookmarkedOnly -> {
+                    articleDao.pagingSourceBookmarkedOnly()
+                }
+                // No filters applied
+                else -> {
+                    articleDao.pagingSource()
+                }
+            }
+        }
+
         return Pager(
             config = PagingConfig(
                 pageSize = 30,
                 prefetchDistance = 10,
                 enablePlaceholders = false,
             ),
-            pagingSourceFactory = { articleDao.pagingSource() },
+            pagingSourceFactory = pagingSourceFactory,
         ).flow
             .map { pagingData ->
                 pagingData.map { it.toDomain() }

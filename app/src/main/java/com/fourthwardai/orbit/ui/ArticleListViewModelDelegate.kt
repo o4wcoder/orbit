@@ -2,8 +2,6 @@ package com.fourthwardai.orbit.ui
 
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import androidx.paging.filter
-import androidx.paging.map
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
@@ -42,18 +40,7 @@ class ArticleListViewModelDelegate(
     val pagedArticles: Flow<PagingData<Article>> =
         _filter
             .flatMapLatest { filter ->
-                articleRepository
-                    .pagedArticles()
-                    .map { pagingData ->
-                        pagingData.filter { article ->
-                            val matchesGroup = filter.selectedGroups.isEmpty() ||
-                                article.categories.any { it.group in filter.selectedGroups }
-                            val matchesCategory = filter.selectedCategoryIds.isEmpty() ||
-                                article.categories.any { it.id in filter.selectedCategoryIds }
-                            val matchesBookmarked = !filter.bookmarkedOnly || article.isBookmarked
-                            matchesGroup && matchesCategory && matchesBookmarked
-                        }
-                    }
+                articleRepository.pagedArticles(filter)
             }
             .cachedIn(viewModelScope)
 

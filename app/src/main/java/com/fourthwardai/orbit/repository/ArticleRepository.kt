@@ -44,8 +44,11 @@ interface ArticleRepository {
      *
      * The Flow does not execute any queries until collected.
      * Paging controls when and how data is loaded.
+     * Filtering is applied at the database query level for optimal performance.
+     *
+     * @param filter The filter criteria to apply at the database level
      */
-    fun pagedArticles(): Flow<PagingData<Article>>
+    fun pagedArticles(filter: FeedFilter): Flow<PagingData<Article>>
 
     // 🔮 Future (when you add server-side filtering/paging):
     // suspend fun fetchArticlesPage(query: ArticleQuery): ApiResult<ArticlePage>

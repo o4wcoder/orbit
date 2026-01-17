@@ -66,4 +66,75 @@ interface ArticleDao {
 
     @Query("SELECT * FROM articles ORDER BY ingestedAt DESC")
     fun pagingSource(): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("""
+        SELECT * FROM articles 
+        WHERE isBookmarked = 1 
+        ORDER BY ingestedAt DESC
+    """)
+    fun pagingSourceBookmarkedOnly(): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT articles.* FROM articles
+        INNER JOIN article_category_cross_ref ON articles.id = article_category_cross_ref.articleId
+        INNER JOIN categories ON article_category_cross_ref.categoryId = categories.id
+        WHERE categories.group IN (:groups)
+        ORDER BY articles.ingestedAt DESC
+    """)
+    fun pagingSourceByGroups(groups: Set<String>): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT articles.* FROM articles
+        INNER JOIN article_category_cross_ref ON articles.id = article_category_cross_ref.articleId
+        WHERE article_category_cross_ref.categoryId IN (:categoryIds)
+        ORDER BY articles.ingestedAt DESC
+    """)
+    fun pagingSourceByCategoryIds(categoryIds: Set<String>): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT articles.* FROM articles
+        INNER JOIN article_category_cross_ref ON articles.id = article_category_cross_ref.articleId
+        INNER JOIN categories ON article_category_cross_ref.categoryId = categories.id
+        WHERE categories.group IN (:groups)
+        AND articles.isBookmarked = 1
+        ORDER BY articles.ingestedAt DESC
+    """)
+    fun pagingSourceByGroupsBookmarked(groups: Set<String>): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT articles.* FROM articles
+        INNER JOIN article_category_cross_ref ON articles.id = article_category_cross_ref.articleId
+        WHERE article_category_cross_ref.categoryId IN (:categoryIds)
+        AND articles.isBookmarked = 1
+        ORDER BY articles.ingestedAt DESC
+    """)
+    fun pagingSourceByCategoryIdsBookmarked(categoryIds: Set<String>): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT articles.* FROM articles
+        INNER JOIN article_category_cross_ref ON articles.id = article_category_cross_ref.articleId
+        INNER JOIN categories ON article_category_cross_ref.categoryId = categories.id
+        WHERE categories.group IN (:groups)
+        AND article_category_cross_ref.categoryId IN (:categoryIds)
+        ORDER BY articles.ingestedAt DESC
+    """)
+    fun pagingSourceByGroupsAndCategoryIds(groups: Set<String>, categoryIds: Set<String>): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("""
+        SELECT DISTINCT articles.* FROM articles
+        INNER JOIN article_category_cross_ref ON articles.id = article_category_cross_ref.articleId
+        INNER JOIN categories ON article_category_cross_ref.categoryId = categories.id
+        WHERE categories.group IN (:groups)
+        AND article_category_cross_ref.categoryId IN (:categoryIds)
+        AND articles.isBookmarked = 1
+        ORDER BY articles.ingestedAt DESC
+    """)
+    fun pagingSourceByGroupsAndCategoryIdsBookmarked(groups: Set<String>, categoryIds: Set<String>): PagingSource<Int, ArticleWithCategories>
 }
