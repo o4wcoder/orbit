@@ -7,6 +7,5 @@ data class NewsFeedDataState(
 )
 
 fun NewsFeedDataState.toContentUiModel() = NewsFeedUiModel.Content(
-    // articles = articles ?: PagingData.empty(),
     isRefreshing = isRefreshing,
 )
