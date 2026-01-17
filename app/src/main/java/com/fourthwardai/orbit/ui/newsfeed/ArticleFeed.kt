@@ -443,7 +443,7 @@ private fun FooterErrorPreview() {
     }
 }
 
-@Preview()
+@Preview(showBackground = true)
 @Composable
 private fun FooterErrorPreviewDark() {
     OrbitTheme(darkTheme = true) {
