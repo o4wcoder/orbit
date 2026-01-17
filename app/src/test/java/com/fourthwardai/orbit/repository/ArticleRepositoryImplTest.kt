@@ -1,6 +1,8 @@
 package com.fourthwardai.orbit.repository
 
 import android.content.Context
+import androidx.paging.PagingSource
+import androidx.paging.testing.asSnapshot
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
@@ -8,6 +10,7 @@ import assertk.assertions.isTrue
 import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleEntity
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
+import com.fourthwardai.orbit.data.local.CategoryEntity
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiError
@@ -58,6 +61,35 @@ class ArticleRepositoryImplTest {
         ingestedAt = Instant.parse("2020-01-01T00:00:00Z"),
         categories = listOf(sampleCategory()),
         isBookmarked = bookmarked,
+    )
+
+    private fun sampleCategoryEntity(id: String = "c1") = CategoryEntity(
+        id = id,
+        name = "Cat",
+        group = "grp",
+        colorLight = "#FF808080",
+        colorDark = "#FFA9A9A9",
+    )
+
+    private fun sampleArticleEntity(id: String = "a1", bookmarked: Boolean = false) = ArticleEntity(
+        id = id,
+        title = "Title",
+        url = "https://example.com",
+        author = "Author",
+        readTime = 5,
+        heroImageUrl = null,
+        teaser = "Teaser",
+        source = "Source",
+        sourceAvatarUrl = null,
+        ingestedAt = "2020-01-01T00:00:00Z",
+        isBookmarked = bookmarked,
+        isDirty = false,
+        lastModified = 0L,
+    )
+
+    private fun sampleArticleWithCategories(id: String = "a1", bookmarked: Boolean = false) = ArticleWithCategories(
+        article = sampleArticleEntity(id, bookmarked),
+        categories = listOf(sampleCategoryEntity()),
     )
 
     @Suppress("UNCHECKED_CAST")
@@ -305,5 +337,145 @@ class ArticleRepositoryImplTest {
 
         // permanent failure should mark the article as not dirty
         coVerify(exactly = 1) { fakeArticleDao.insert(match { it.id == entity.id && it.isDirty == false }) }
+    }
+
+    @Test
+    fun `pagedArticles returns flow with correct paging configuration`() = runTest {
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
+        wireDaoFlow()
+
+        // Create a larger dataset to test paging behavior (50 items to test page size of 30)
+        val largeDataset = (1..50).map { index ->
+            sampleArticleWithCategories("a$index", bookmarked = index % 2 == 0)
+        }
+
+        // Create a test paging source with the large dataset
+        val testPagingSource = TestPagingSource(largeDataset)
+        every { fakeArticleDao.pagingSource() } returns testPagingSource
+
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val testScope = TestScope(testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+
+        // Call pagedArticles to get the flow
+        val pagingDataFlow = repo.pagedArticles()
+        
+        // Collect snapshot to verify paging works correctly
+        // The asSnapshot() helper will load all pages automatically
+        val items = pagingDataFlow.asSnapshot()
+
+        // Verify all items are loaded through paging
+        assertThat(items.size).isEqualTo(50)
+        
+        // Verify first and last items to ensure proper ordering
+        assertThat(items[0].id).isEqualTo("a1")
+        assertThat(items[49].id).isEqualTo("a50")
+        
+        // Verify the mapping is applied (checking bookmarked status)
+        assertThat(items[1].isBookmarked).isTrue() // a2 (even index)
+        assertThat(items[0].isBookmarked).isFalse() // a1 (odd index)
+    }
+
+    @Test
+    fun `pagedArticles maps ArticleWithCategories to Article domain objects`() = runTest {
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
+        wireDaoFlow()
+
+        // Create sample data
+        val articlesWithCategories = listOf(
+            sampleArticleWithCategories("a1", bookmarked = false),
+            sampleArticleWithCategories("a2", bookmarked = true),
+            sampleArticleWithCategories("a3", bookmarked = false),
+        )
+
+        // Mock the paging source to return our test data
+        val testPagingSource = TestPagingSource(articlesWithCategories)
+        every { fakeArticleDao.pagingSource() } returns testPagingSource
+
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val testScope = TestScope(testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+
+        // Collect the paging data using the testing utilities
+        val pagingDataFlow = repo.pagedArticles()
+        val items = pagingDataFlow.asSnapshot()
+
+        // Verify the mapping
+        assertThat(items.size).isEqualTo(3)
+        assertThat(items[0].id).isEqualTo("a1")
+        assertThat(items[0].title).isEqualTo("Title")
+        assertThat(items[0].isBookmarked).isFalse()
+        assertThat(items[1].id).isEqualTo("a2")
+        assertThat(items[1].isBookmarked).isTrue()
+        assertThat(items[2].id).isEqualTo("a3")
+        assertThat(items[2].isBookmarked).isFalse()
+
+        // Verify domain object properties are correctly mapped
+        assertThat(items[0].url).isEqualTo("https://example.com")
+        assertThat(items[0].author).isEqualTo("Author")
+        assertThat(items[0].readTimeMinutes).isEqualTo(5)
+        assertThat(items[0].source).isEqualTo("Source")
+        assertThat(items[0].ingestedAt).isEqualTo(Instant.parse("2020-01-01T00:00:00Z"))
+        assertThat(items[0].categories.size).isEqualTo(1)
+        assertThat(items[0].categories[0].name).isEqualTo("Cat")
+    }
+
+    @Test
+    fun `pagedArticles handles empty data correctly`() = runTest {
+        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
+        every { scheduleArticleSync(any()) } just Runs
+
+        wireDaoFlow()
+
+        // Mock the paging source to return empty data
+        val testPagingSource = TestPagingSource<ArticleWithCategories>(emptyList())
+        every { fakeArticleDao.pagingSource() } returns testPagingSource
+
+        val testDispatcher = StandardTestDispatcher(testScheduler)
+        val testScope = TestScope(testDispatcher)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+
+        // Collect the paging data
+        val pagingDataFlow = repo.pagedArticles()
+        val items = pagingDataFlow.asSnapshot()
+
+        // Verify empty result
+        assertThat(items.size).isEqualTo(0)
+    }
+
+    /**
+     * Test PagingSource implementation for testing purposes.
+     * Returns all data in a single page.
+     */
+    private class TestPagingSource<T : Any>(
+        private val data: List<T>,
+    ) : PagingSource<Int, T>() {
+        override suspend fun load(params: LoadParams<Int>): LoadResult<Int, T> {
+            val page = params.key ?: 0
+            val pageSize = params.loadSize
+            val startIndex = page * pageSize
+            val endIndex = minOf(startIndex + pageSize, data.size)
+
+            return if (startIndex >= data.size) {
+                LoadResult.Page(
+                    data = emptyList(),
+                    prevKey = if (page > 0) page - 1 else null,
+                    nextKey = null,
+                )
+            } else {
+                LoadResult.Page(
+                    data = data.subList(startIndex, endIndex),
+                    prevKey = if (page > 0) page - 1 else null,
+                    nextKey = if (endIndex < data.size) page + 1 else null,
+                )
+            }
+        }
+
+        override fun getRefreshKey(state: androidx.paging.PagingState<Int, T>): Int? = null
+    }
     }
 }
