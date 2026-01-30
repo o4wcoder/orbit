@@ -1,14 +1,17 @@
 package com.fourthwardai.orbit.repository
 
 import android.content.Context
+import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
 import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
+import com.fourthwardai.orbit.data.local.OrbitDatabase
 import com.fourthwardai.orbit.data.local.toDomain
 import com.fourthwardai.orbit.data.local.toEntity
+import com.fourthwardai.orbit.data.paging.ArticlesRemoteMediator
 import com.fourthwardai.orbit.di.IODispatcher
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
@@ -22,7 +25,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +37,7 @@ import javax.inject.Inject
 class ArticleRepositoryImpl @Inject constructor(
     private val service: ArticleService,
     private val articleDao: ArticleDao,
+    private val orbitDatabase: OrbitDatabase,
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
     @param:ApplicationContext private val context: Context,
@@ -53,19 +56,20 @@ class ArticleRepositoryImpl @Inject constructor(
                 }
         }
 
-        scope.launch {
-            try {
-                val result = withContext(ioDispatcher) { service.fetchArticles() }
-                if (result is ApiResult.Success) {
-                    val articlesWithCategories = mapArticlesWithCategories(result.data)
-                    // replaceAll runs in a transaction on the DAO
-                    articleDao.replaceAll(articlesWithCategories)
-                }
-            } catch (t: Throwable) {
-                Timber.d("CGH: Failed to sync articles from network: $t")
-                ensureActive()
-            }
-        }
+        // TODO: Removed as Step 0 in adding RemoteMediator for paging
+//        scope.launch {
+//            try {
+//                val result = withContext(ioDispatcher) { service.fetchArticles() }
+//                if (result is ApiResult.Success) {
+//                    val articlesWithCategories = mapArticlesWithCategories(result.data)
+//                    // replaceAll runs in a transaction on the DAO
+//                    articleDao.replaceAll(articlesWithCategories)
+//                }
+//            } catch (t: Throwable) {
+//                Timber.d("CGH: Failed to sync articles from network: $t")
+//                ensureActive()
+//            }
+//        }
     }
 
     override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(ioDispatcher) {
@@ -141,6 +145,7 @@ class ArticleRepositoryImpl @Inject constructor(
     }
 
     override suspend fun refreshArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
+        // TODO: Removed this as Step 0 in adding RemoteMediator for paging
         when (val result = service.fetchArticles()) {
             is ApiResult.Success -> {
                 try {
@@ -162,12 +167,19 @@ class ArticleRepositoryImpl @Inject constructor(
         service.fetchArticleCategories()
     }
 
+    @OptIn(ExperimentalPagingApi::class)
     override fun pagedArticles(): Flow<PagingData<Article>> {
         return Pager(
             config = PagingConfig(
                 pageSize = 30,
-                prefetchDistance = 10,
+                initialLoadSize = 30,
+                prefetchDistance = 5,
                 enablePlaceholders = false,
+            ),
+            remoteMediator = ArticlesRemoteMediator(
+                db = orbitDatabase,
+                service = service,
+                pageSize = 30,
             ),
             pagingSourceFactory = { articleDao.pagingSource() },
         ).flow

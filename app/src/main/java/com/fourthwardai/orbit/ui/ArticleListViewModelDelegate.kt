@@ -103,16 +103,4 @@ class ArticleListViewModelDelegate(
             }
         }
     }
-
-    fun refreshArticles() {
-        viewModelScope.launch {
-            _dataState.update { it.copy(isRefreshing = true) }
-
-            val result = articleRepository.refreshArticles()
-            result.onFailure { error ->
-                Timber.e("Failed to refresh articles. Error = ${error.message}")
-            }
-            _dataState.update { it.copy(isRefreshing = false) }
-        }
-    }
 }

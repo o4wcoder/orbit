@@ -31,8 +31,4 @@ class NewsFeedViewModel @Inject constructor(
     fun onBookmarkClick(id: String, isBookmarked: Boolean) {
         delegate.bookmarkArticle(id, isBookmarked)
     }
-
-    fun refreshArticles() {
-        delegate.refreshArticles()
-    }
 }

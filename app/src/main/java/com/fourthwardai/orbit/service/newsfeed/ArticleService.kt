@@ -1,6 +1,8 @@
 package com.fourthwardai.orbit.service.newsfeed
 
 import com.fourthwardai.orbit.domain.Article
+import com.fourthwardai.orbit.domain.ArticlePage
+import com.fourthwardai.orbit.domain.ArticlesPageCursor
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.toDomain
 import com.fourthwardai.orbit.network.ApiResult
@@ -40,6 +42,39 @@ class ArticleService(
             setBody(requestBody)
         }
         ApiResult.Success(Unit)
+    } catch (e: Exception) {
+        ApiResult.Failure(e.toApiError())
+    }
+
+    suspend fun fetchArticlesPage(
+        limit: Int,
+        cursor: ArticlesPageCursor?,
+    ): ApiResult<ArticlePage> = try {
+        val dtos: List<ArticleDto> = client.get("$orbitBaseUrl${OrbitEndpoints.ARTICLE_FEED}") {
+            url {
+                parameters.append("limit", limit.toString())
+                cursor?.let {
+                    parameters.append("beforeIngestedAt", it.beforeIngestedAt.toString())
+                    parameters.append("beforeId", it.beforeId)
+                }
+            }
+        }.body()
+
+        val articles = dtos.map { it.toDomain() }
+
+        val nextCursor = articles.lastOrNull()?.let { last ->
+            ArticlesPageCursor(
+                beforeIngestedAt = last.ingestedAt,
+                beforeId = last.id,
+            )
+        }
+
+        ApiResult.Success(
+            ArticlePage(
+                articles = articles,
+                nextCursor = nextCursor,
+            ),
+        )
     } catch (e: Exception) {
         ApiResult.Failure(e.toApiError())
     }

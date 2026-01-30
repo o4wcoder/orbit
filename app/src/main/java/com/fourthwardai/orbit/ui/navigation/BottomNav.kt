@@ -132,7 +132,6 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         pagedArticles = pagedArticles,
                         categories = viewModel.categories.collectAsStateWithLifecycle().value,
                         filters = viewModel.filter.collectAsStateWithLifecycle().value,
-                        onRefresh = viewModel::refreshArticles,
                         onApply = { groups, categoryIds ->
                             viewModel.onFiltersApplied(groups, categoryIds)
                         },
@@ -149,7 +148,6 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                         categories = viewModel.categories.collectAsStateWithLifecycle().value,
                         filters = viewModel.filter.collectAsStateWithLifecycle().value,
                         isRefreshEnabled = false,
-                        onRefresh = {},
                         onApply = { groups, categoryIds ->
                             viewModel.onFiltersApplied(groups, categoryIds)
                         },

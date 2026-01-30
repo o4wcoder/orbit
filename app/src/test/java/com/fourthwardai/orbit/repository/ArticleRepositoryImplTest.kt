@@ -11,6 +11,7 @@ import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleEntity
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.data.local.CategoryEntity
+import com.fourthwardai.orbit.data.local.OrbitDatabase
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.network.ApiError
@@ -38,6 +39,7 @@ class ArticleRepositoryImplTest {
 
     val fakeArticleService = mockk<ArticleService>()
     val fakeArticleDao = mockk<ArticleDao>()
+    val fakeOrbitDatabase = mockk<OrbitDatabase>()
     val fakeContext = mockk<Context>(relaxed = true)
 
     private fun sampleCategory(id: String = "c1") = Category(
@@ -81,7 +83,7 @@ class ArticleRepositoryImplTest {
         teaser = "Teaser",
         source = "Source",
         sourceAvatarUrl = null,
-        ingestedAt = "2020-01-01T00:00:00Z",
+        ingestedAt = Instant.parse("2020-01-01T00:00:00Z").toEpochMilli(),
         isBookmarked = bookmarked,
         isDirty = false,
         lastModified = 0L,
@@ -126,7 +128,7 @@ class ArticleRepositoryImplTest {
             teaser = articles[0].teaser,
             source = articles[0].source,
             sourceAvatarUrl = articles[0].sourceAvatarUrl,
-            ingestedAt = articles[0].ingestedAt.toString(),
+            ingestedAt = articles[0].ingestedAt.toEpochMilli(),
             isBookmarked = false,
             isDirty = false,
             lastModified = 0L,
@@ -138,7 +140,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         advanceUntilIdle()
 
         // pre-populate articles via refreshArticles
@@ -177,7 +179,7 @@ class ArticleRepositoryImplTest {
             teaser = articles[0].teaser,
             source = articles[0].source,
             sourceAvatarUrl = articles[0].sourceAvatarUrl,
-            ingestedAt = articles[0].ingestedAt.toString(),
+            ingestedAt = articles[0].ingestedAt.toEpochMilli(),
             isBookmarked = false,
             isDirty = false,
             lastModified = 0L,
@@ -189,7 +191,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         val refreshResult = repo.refreshArticles()
         // allow background collector on the repository's scope to process the DAO flow
         advanceUntilIdle()
@@ -220,7 +222,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         val result = repo.refreshArticles()
         // allow background collector on the repository's scope to process the DAO flow
         advanceUntilIdle()
@@ -244,7 +246,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         val result = repo.getCategories()
         assertThat(result).isEqualTo(ApiResult.Success(categories))
     }
@@ -259,7 +261,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
 
         val result = repo.syncDirtyArticles()
         assertThat(result).isEqualTo(ApiResult.Success(Unit))
@@ -282,7 +284,7 @@ class ArticleRepositoryImplTest {
             teaser = null,
             source = "src",
             sourceAvatarUrl = null,
-            ingestedAt = "2020-01-01T00:00:00Z",
+            ingestedAt = Instant.parse("2020-01-01T00:00:00Z").toEpochMilli(),
             isBookmarked = true,
             isDirty = true,
             lastModified = 0L,
@@ -293,7 +295,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
 
         val result = repo.syncDirtyArticles()
         assertThat(result).isEqualTo(ApiResult.Failure(ApiError.Network("net")))
@@ -319,7 +321,7 @@ class ArticleRepositoryImplTest {
             teaser = null,
             source = "src2",
             sourceAvatarUrl = null,
-            ingestedAt = "2020-01-01T00:00:00Z",
+            ingestedAt = Instant.parse("2020-01-01T00:00:00Z").toEpochMilli(),
             isBookmarked = false,
             isDirty = true,
             lastModified = 0L,
@@ -330,7 +332,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
 
         val result = repo.syncDirtyArticles()
         assertThat(result).isEqualTo(ApiResult.Success(Unit))
@@ -357,7 +359,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
 
         // Call pagedArticles to get the flow
         val pagingDataFlow = repo.pagedArticles()
@@ -398,7 +400,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
 
         // Collect the paging data using the testing utilities
         val pagingDataFlow = repo.pagedArticles()
@@ -437,7 +439,7 @@ class ArticleRepositoryImplTest {
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
 
         // Collect the paging data
         val pagingDataFlow = repo.pagedArticles()
@@ -476,6 +478,5 @@ class ArticleRepositoryImplTest {
         }
 
         override fun getRefreshKey(state: androidx.paging.PagingState<Int, T>): Int? = null
-    }
     }
 }

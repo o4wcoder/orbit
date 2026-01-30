@@ -20,7 +20,7 @@ fun ArticleWithCategories.toDomain(): Article {
         teaser = articleEntity.teaser,
         source = articleEntity.source,
         sourceAvatarUrl = articleEntity.sourceAvatarUrl,
-        ingestedAt = Instant.parse(articleEntity.ingestedAt),
+        ingestedAt = Instant.ofEpochMilli(articleEntity.ingestedAt),
         categories = this.categories.map { it.toDomain() },
         isBookmarked = articleEntity.isBookmarked,
     )
@@ -36,7 +36,7 @@ fun Article.toEntity(): ArticleEntity = ArticleEntity(
     teaser = teaser,
     source = source,
     sourceAvatarUrl = sourceAvatarUrl,
-    ingestedAt = ingestedAt.toString(),
+    ingestedAt = ingestedAt.toEpochMilli(),
     isBookmarked = isBookmarked,
     // Articles mapped from domain/network are not dirty by default
     isDirty = false,

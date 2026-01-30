@@ -54,3 +54,22 @@ fun Throwable.toApiError(): ApiError = when (this) {
     else ->
         ApiError.Unknown(message ?: "Unknown error", this)
 }
+
+fun ApiError.toThrowable(): Throwable = when (this) {
+    is ApiError.Http ->
+        ApiException.Http(code = code, message = message)
+
+    is ApiError.Network ->
+        ApiException.Network(message)
+
+    is ApiError.Unknown ->
+        ApiException.Unknown(message, cause)
+
+    else -> ApiException.Unknown(message, null)
+}
+
+sealed class ApiException(message: String?, cause: Throwable? = null) : Exception(message, cause) {
+    class Http(val code: Int, message: String?) : ApiException(message)
+    class Network(message: String?) : ApiException(message)
+    class Unknown(message: String?, cause: Throwable?) : ApiException(message, cause)
+}

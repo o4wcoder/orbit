@@ -65,6 +65,6 @@ interface ArticleDao {
     suspend fun getById(id: String): ArticleEntity?
 
     @Transaction
-    @Query("SELECT * FROM articles ORDER BY ingestedAt DESC")
+    @Query("SELECT * FROM articles ORDER BY ingestedAt DESC, id DESC")
     fun pagingSource(): PagingSource<Int, ArticleWithCategories>
 }
