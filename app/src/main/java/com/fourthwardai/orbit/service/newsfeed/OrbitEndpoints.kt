@@ -4,4 +4,5 @@ object OrbitEndpoints {
     const val ARTICLE_FEED = "article-feed"
     const val ARTICLE_CATEGORIES = "article-categories"
     const val ARTICLE_BOOKMARK = "article-bookmark"
+    const val SAVED_ARTICLES_FEED = "saved-feed"
 }

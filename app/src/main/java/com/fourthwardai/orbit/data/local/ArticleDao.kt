@@ -67,4 +67,8 @@ interface ArticleDao {
     @Transaction
     @Query("SELECT * FROM articles ORDER BY ingestedAt DESC, id DESC")
     fun pagingSource(): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("SELECT * FROM articles WHERE isBookmarked = 1 ORDER BY ingestedAt DESC, id DESC")
+    fun savedPagingSource(): PagingSource<Int, ArticleWithCategories>
 }

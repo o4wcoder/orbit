@@ -49,25 +49,50 @@ class ArticleService(
     suspend fun fetchArticlesPage(
         limit: Int,
         cursor: ArticlesPageCursor?,
+    ): ApiResult<ArticlePage> = fetchPage(
+        limit = limit,
+        cursor = cursor,
+        endpoint = OrbitEndpoints.ARTICLE_FEED,
+    )
+
+    suspend fun fetchSavedArticlesPage(
+        limit: Int,
+        cursor: ArticlesPageCursor?,
+    ): ApiResult<ArticlePage> = fetchPage(
+        limit = limit,
+        cursor = cursor,
+        endpoint = OrbitEndpoints.SAVED_ARTICLES_FEED,
+    )
+
+    private suspend fun fetchPage(
+        limit: Int,
+        cursor: ArticlesPageCursor?,
+        endpoint: String,
     ): ApiResult<ArticlePage> = try {
-        val dtos: List<ArticleDto> = client.get("$orbitBaseUrl${OrbitEndpoints.ARTICLE_FEED}") {
-            url {
-                parameters.append("limit", limit.toString())
-                cursor?.let {
-                    parameters.append("beforeIngestedAt", it.beforeIngestedAt.toString())
-                    parameters.append("beforeId", it.beforeId)
+        val dtos: List<ArticleDto> =
+            client.get("$orbitBaseUrl$endpoint") {
+                url {
+                    parameters.append("limit", limit.toString())
+                    cursor?.let {
+                        parameters.append("beforeIngestedAt", it.beforeIngestedAt.toString())
+                        parameters.append("beforeId", it.beforeId)
+                    }
                 }
-            }
-        }.body()
+            }.body()
 
         val articles = dtos.map { it.toDomain() }
 
-        val nextCursor = articles.lastOrNull()?.let { last ->
-            ArticlesPageCursor(
-                beforeIngestedAt = last.ingestedAt,
-                beforeId = last.id,
-            )
-        }
+        val nextCursor =
+            if (articles.size < limit) {
+                null
+            } else {
+                articles.lastOrNull()?.let { last ->
+                    ArticlesPageCursor(
+                        beforeIngestedAt = last.ingestedAt,
+                        beforeId = last.id,
+                    )
+                }
+            }
 
         ApiResult.Success(
             ArticlePage(

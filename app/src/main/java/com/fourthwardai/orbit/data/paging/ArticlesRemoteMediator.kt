@@ -9,17 +9,19 @@ import com.fourthwardai.orbit.data.local.ArticleRemoteKeyEntity
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.data.local.OrbitDatabase
 import com.fourthwardai.orbit.data.local.toEntity
+import com.fourthwardai.orbit.domain.ArticlePage
 import com.fourthwardai.orbit.domain.ArticlesPageCursor
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.network.toThrowable
-import com.fourthwardai.orbit.service.newsfeed.ArticleService
 import java.time.Instant
 
 @OptIn(ExperimentalPagingApi::class)
 class ArticlesRemoteMediator(
     private val db: OrbitDatabase,
-    private val service: ArticleService,
     private val pageSize: Int,
+    private val feedId: String,
+    private val fetchPage: suspend (limit: Int, cursor: ArticlesPageCursor?) -> ApiResult<ArticlePage>,
+    private val clearOnRefresh: suspend () -> Unit,
 ) : RemoteMediator<Int, ArticleWithCategories>() {
 
     override suspend fun load(
@@ -34,7 +36,7 @@ class ArticlesRemoteMediator(
                 LoadType.REFRESH -> null
 
                 LoadType.APPEND -> {
-                    val key = keyDao.get()
+                    val key = keyDao.get(feedId)
                     val beforeAt = key?.nextBeforeIngestedAt
                     val beforeId = key?.nextBeforeId
                     if (beforeAt == null || beforeId == null) {
@@ -53,7 +55,7 @@ class ArticlesRemoteMediator(
             }
 
             val limit = state.config.pageSize.coerceAtLeast(pageSize)
-            val pageResult = service.fetchArticlesPage(limit = limit, cursor = cursor)
+            val pageResult = fetchPage(limit, cursor)
 
             val page = when (pageResult) {
                 is ApiResult.Success -> pageResult.data
@@ -63,9 +65,9 @@ class ArticlesRemoteMediator(
 
             db.withTransaction {
                 if (loadType == LoadType.REFRESH) {
-                    keyDao.clear()
+                    keyDao.clear(feedId)
                     // If you have cross tables (article_categories), clear those too.
-                    articleDao.clearArticles()
+                    clearOnRefresh()
                 }
 
                 articleDao.insertAll(entities)
@@ -74,7 +76,7 @@ class ArticlesRemoteMediator(
                     val next = page.nextCursor
                     keyDao.upsert(
                         ArticleRemoteKeyEntity(
-                            feedId = "main",
+                            feedId = feedId,
                             nextBeforeIngestedAt = next?.beforeIngestedAt?.toEpochMilli(),
                             nextBeforeId = next?.beforeId,
                             updatedAt = System.currentTimeMillis(),
@@ -82,16 +84,7 @@ class ArticlesRemoteMediator(
                     )
                 }
             }
-//            Timber.d("MEDIATOR loadType=%s", loadType)
-//
-//            Timber.d("MEDIATOR cursor=%s/%s", cursor?.beforeIngestedAt, cursor?.beforeId)
-//
-//            Timber.d("MEDIATOR fetched=%d limit=%d next=%s/%s",
-//                page.articles.size,
-//                limit,
-//                page.nextCursor?.beforeIngestedAt,
-//                page.nextCursor?.beforeId
-//            )
+
             val endReached = page.articles.isEmpty() || page.articles.size < limit
             return MediatorResult.Success(endOfPaginationReached = endReached)
         } catch (t: Throwable) {

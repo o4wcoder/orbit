@@ -363,18 +363,18 @@ class ArticleRepositoryImplTest {
 
         // Call pagedArticles to get the flow
         val pagingDataFlow = repo.pagedArticles()
-        
+
         // Collect snapshot to verify paging works correctly
         // The asSnapshot() helper will load all pages automatically
         val items = pagingDataFlow.asSnapshot()
 
         // Verify all items are loaded through paging
         assertThat(items.size).isEqualTo(50)
-        
+
         // Verify first and last items to ensure proper ordering
         assertThat(items[0].id).isEqualTo("a1")
         assertThat(items[49].id).isEqualTo("a50")
-        
+
         // Verify the mapping is applied (checking bookmarked status)
         assertThat(items[1].isBookmarked).isTrue() // a2 (even index)
         assertThat(items[0].isBookmarked).isFalse() // a1 (odd index)

@@ -90,7 +90,6 @@ fun ArticleFeed(
 
     // Scroll-to-top effect when filters change (from dialog)
     LaunchedEffect(filters) {
-        // pick which state to scroll depending on layout, or just scroll both safely
         listState.scrollToItem(0)
         staggeredGridState.scrollToItem(0)
     }

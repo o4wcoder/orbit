@@ -43,6 +43,13 @@ class ArticleRepositoryImpl @Inject constructor(
     @param:ApplicationContext private val context: Context,
 ) : ArticleRepository {
 
+    val pagingConfig = PagingConfig(
+        pageSize = 30,
+        initialLoadSize = 30,
+        prefetchDistance = 5,
+        enablePlaceholders = false,
+    )
+
     private val _articles = MutableStateFlow<List<Article>?>(null)
     override val articles: StateFlow<List<Article>?> = _articles
 
@@ -55,21 +62,6 @@ class ArticleRepositoryImpl @Inject constructor(
                     _articles.value = domainArticles
                 }
         }
-
-        // TODO: Removed as Step 0 in adding RemoteMediator for paging
-//        scope.launch {
-//            try {
-//                val result = withContext(ioDispatcher) { service.fetchArticles() }
-//                if (result is ApiResult.Success) {
-//                    val articlesWithCategories = mapArticlesWithCategories(result.data)
-//                    // replaceAll runs in a transaction on the DAO
-//                    articleDao.replaceAll(articlesWithCategories)
-//                }
-//            } catch (t: Throwable) {
-//                Timber.d("CGH: Failed to sync articles from network: $t")
-//                ensureActive()
-//            }
-//        }
     }
 
     override suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit> = withContext(ioDispatcher) {
@@ -144,24 +136,24 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun refreshArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
-        // TODO: Removed this as Step 0 in adding RemoteMediator for paging
-        when (val result = service.fetchArticles()) {
-            is ApiResult.Success -> {
-                try {
-                    val articlesWithCategories = mapArticlesWithCategories(result.data)
-                    articleDao.replaceAll(articlesWithCategories)
-                    _articles.value = result.data
-                    ApiResult.Success(Unit)
-                } catch (e: Exception) {
-                    ApiResult.Failure(ApiError.Unknown(e.message ?: "Failed to persist articles"))
-                }
-            }
-            is ApiResult.Failure -> {
-                ApiResult.Failure(result.error)
-            }
-        }
-    }
+//    override suspend fun refreshArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
+//        // TODO: Removed this as Step 0 in adding RemoteMediator for paging
+//        when (val result = service.fetchArticles()) {
+//            is ApiResult.Success -> {
+//                try {
+//                    val articlesWithCategories = mapArticlesWithCategories(result.data)
+//                    articleDao.replaceAll(articlesWithCategories)
+//                    _articles.value = result.data
+//                    ApiResult.Success(Unit)
+//                } catch (e: Exception) {
+//                    ApiResult.Failure(ApiError.Unknown(e.message ?: "Failed to persist articles"))
+//                }
+//            }
+//            is ApiResult.Failure -> {
+//                ApiResult.Failure(result.error)
+//            }
+//        }
+//    }
 
     override suspend fun getCategories(): ApiResult<List<Category>> = withContext(ioDispatcher) {
         service.fetchArticleCategories()
@@ -170,18 +162,33 @@ class ArticleRepositoryImpl @Inject constructor(
     @OptIn(ExperimentalPagingApi::class)
     override fun pagedArticles(): Flow<PagingData<Article>> {
         return Pager(
-            config = PagingConfig(
-                pageSize = 30,
-                initialLoadSize = 30,
-                prefetchDistance = 5,
-                enablePlaceholders = false,
-            ),
+            config = pagingConfig,
             remoteMediator = ArticlesRemoteMediator(
                 db = orbitDatabase,
-                service = service,
                 pageSize = 30,
+                feedId = "feed",
+                fetchPage = { limit, cursor -> service.fetchArticlesPage(limit, cursor) },
+                clearOnRefresh = { articleDao.clearArticles() },
             ),
             pagingSourceFactory = { articleDao.pagingSource() },
+        ).flow
+            .map { pagingData ->
+                pagingData.map { it.toDomain() }
+            }
+    }
+
+    @OptIn(ExperimentalPagingApi::class)
+    override fun pagedSavedArticles(): Flow<PagingData<Article>> {
+        return Pager(
+            config = pagingConfig,
+            remoteMediator = ArticlesRemoteMediator(
+                db = orbitDatabase,
+                pageSize = 30,
+                feedId = "saved",
+                fetchPage = { limit, cursor -> service.fetchSavedArticlesPage(limit, cursor) },
+                clearOnRefresh = { },
+            ),
+            pagingSourceFactory = { articleDao.savedPagingSource() },
         ).flow
             .map { pagingData ->
                 pagingData.map { it.toDomain() }

@@ -21,12 +21,6 @@ interface ArticleRepository {
     suspend fun bookmarkArticle(id: String, isBookmarked: Boolean): ApiResult<Unit>
 
     /**
-     * One-shot refresh from remote (n8n/Airtable).
-     * For now: fetch *all* articles and store in [articles].
-     */
-    suspend fun refreshArticles(): ApiResult<Unit>
-
-    /**
      * Get categories. For now just pass through to ArticleService.
      * In the future, you might cache these or move them to a CategoryRepository.
      */
@@ -47,6 +41,5 @@ interface ArticleRepository {
      */
     fun pagedArticles(): Flow<PagingData<Article>>
 
-    // 🔮 Future (when you add server-side filtering/paging):
-    // suspend fun fetchArticlesPage(query: ArticleQuery): ApiResult<ArticlePage>
+    fun pagedSavedArticles(): Flow<PagingData<Article>>
 }
