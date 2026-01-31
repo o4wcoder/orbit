@@ -5,7 +5,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
 import androidx.room.Transaction
+import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -71,4 +73,12 @@ interface ArticleDao {
     @Transaction
     @Query("SELECT * FROM articles WHERE isBookmarked = 1 ORDER BY ingestedAt DESC, id DESC")
     fun savedPagingSource(): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @RawQuery(observedEntities = [ArticleEntity::class, ArticleCategoryCrossRef::class, CategoryEntity::class])
+    fun pagingSourceFiltered(query: SupportSQLiteQuery): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @RawQuery(observedEntities = [ArticleEntity::class, ArticleCategoryCrossRef::class, CategoryEntity::class])
+    fun savedPagingSourceFiltered(query: SupportSQLiteQuery): PagingSource<Int, ArticleWithCategories>
 }

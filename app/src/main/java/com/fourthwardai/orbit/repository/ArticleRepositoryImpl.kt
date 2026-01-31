@@ -6,6 +6,8 @@ import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.data.local.OrbitDatabase
@@ -15,6 +17,7 @@ import com.fourthwardai.orbit.data.paging.ArticlesRemoteMediator
 import com.fourthwardai.orbit.di.IODispatcher
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
+import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.network.isTransient
@@ -160,7 +163,7 @@ class ArticleRepositoryImpl @Inject constructor(
     }
 
     @OptIn(ExperimentalPagingApi::class)
-    override fun pagedArticles(): Flow<PagingData<Article>> {
+    override fun pagedArticles(filter: FeedFilter): Flow<PagingData<Article>> {
         return Pager(
             config = pagingConfig,
             remoteMediator = ArticlesRemoteMediator(
@@ -168,9 +171,20 @@ class ArticleRepositoryImpl @Inject constructor(
                 pageSize = 30,
                 feedId = "feed",
                 fetchPage = { limit, cursor -> service.fetchArticlesPage(limit, cursor) },
-                clearOnRefresh = { articleDao.clearArticles() },
+                clearOnRefresh = {
+                    articleDao.clearArticles()
+                    articleDao.clearCategories()
+                    articleDao.clearCrossRefs()
+                },
             ),
-            pagingSourceFactory = { articleDao.pagingSource() },
+            pagingSourceFactory = {
+                if (!filter.hasUserSelectedFilters && !filter.bookmarkedOnly) {
+                    articleDao.pagingSource()
+                } else {
+                    articleDao.pagingSourceFiltered(buildFilteredArticlesQuery(filter))
+                }
+            },
+
         ).flow
             .map { pagingData ->
                 pagingData.map { it.toDomain() }
@@ -178,7 +192,7 @@ class ArticleRepositoryImpl @Inject constructor(
     }
 
     @OptIn(ExperimentalPagingApi::class)
-    override fun pagedSavedArticles(): Flow<PagingData<Article>> {
+    override fun pagedSavedArticles(filter: FeedFilter): Flow<PagingData<Article>> {
         return Pager(
             config = pagingConfig,
             remoteMediator = ArticlesRemoteMediator(
@@ -186,9 +200,15 @@ class ArticleRepositoryImpl @Inject constructor(
                 pageSize = 30,
                 feedId = "saved",
                 fetchPage = { limit, cursor -> service.fetchSavedArticlesPage(limit, cursor) },
-                clearOnRefresh = { },
+                clearOnRefresh = {},
             ),
-            pagingSourceFactory = { articleDao.savedPagingSource() },
+            pagingSourceFactory = {
+                if (!filter.hasUserSelectedFilters) {
+                    articleDao.savedPagingSource()
+                } else {
+                    articleDao.savedPagingSourceFiltered(buildFilteredSavedArticlesQuery(filter))
+                }
+            },
         ).flow
             .map { pagingData ->
                 pagingData.map { it.toDomain() }
@@ -201,4 +221,98 @@ class ArticleRepositoryImpl @Inject constructor(
             val categories = article.categories.map { it.toEntity() }
             ArticleWithCategories(article = entity, categories = categories)
         }
+
+    private fun buildFilteredArticlesQuery(filter: FeedFilter): SupportSQLiteQuery {
+        val where = mutableListOf<String>()
+        val args = mutableListOf<Any>()
+
+        if (filter.bookmarkedOnly) {
+            where += "isBookmarked = 1"
+        }
+
+        // Category IDs filter: article must have ANY of the selected categories
+        if (filter.selectedCategoryIds.isNotEmpty()) {
+            val placeholders = filter.selectedCategoryIds.joinToString(",") { "?" }
+            where += """
+          EXISTS (
+            SELECT 1
+            FROM article_category_cross_ref acc
+            WHERE acc.articleId = articles.id
+              AND acc.categoryId IN ($placeholders)
+          )
+            """.trimIndent()
+            args.addAll(filter.selectedCategoryIds.map { it as Any })
+        }
+
+        // Group filter: article must have ANY category whose group is in selected groups
+        if (filter.selectedGroups.isNotEmpty()) {
+            val placeholders = filter.selectedGroups.joinToString(",") { "?" }
+            where += """
+      EXISTS (
+        SELECT 1
+        FROM article_category_cross_ref acc
+        JOIN categories c ON c.id = acc.categoryId
+        WHERE acc.articleId = articles.id
+          AND c.`group` IN ($placeholders)
+      )
+            """.trimIndent()
+
+            args.addAll(filter.selectedGroups.map { it as Any })
+        }
+
+        val whereClause = if (where.isEmpty()) "" else "WHERE " + where.joinToString(" AND ")
+
+        val sql = """
+      SELECT * FROM articles
+      $whereClause
+      ORDER BY ingestedAt DESC, id DESC
+        """.trimIndent()
+
+        return SimpleSQLiteQuery(sql, args.toTypedArray())
+    }
+
+    private fun buildFilteredSavedArticlesQuery(filter: FeedFilter): SupportSQLiteQuery {
+        val where = mutableListOf<String>()
+        val args = mutableListOf<Any>()
+
+        // Always saved-only
+        where += "isBookmarked = 1"
+
+        if (filter.selectedCategoryIds.isNotEmpty()) {
+            val placeholders = filter.selectedCategoryIds.joinToString(",") { "?" }
+            where += """
+          EXISTS (
+            SELECT 1
+            FROM article_category_cross_ref acc
+            WHERE acc.articleId = articles.id
+              AND acc.categoryId IN ($placeholders)
+          )
+            """.trimIndent()
+
+            args.addAll(filter.selectedCategoryIds.map { it as Any })
+        }
+
+        if (filter.selectedGroups.isNotEmpty()) {
+            val placeholders = filter.selectedGroups.joinToString(",") { "?" }
+            where += """
+          EXISTS (
+            SELECT 1
+            FROM article_category_cross_ref acc
+            JOIN categories c ON c.id = acc.categoryId
+            WHERE acc.articleId = articles.id
+              AND c.`group` IN ($placeholders)
+          )
+            """.trimIndent()
+
+            args.addAll(filter.selectedGroups.map { it as Any })
+        }
+
+        val sql = """
+      SELECT * FROM articles
+      WHERE ${where.joinToString(" AND ")}
+      ORDER BY ingestedAt DESC, id DESC
+        """.trimIndent()
+
+        return SimpleSQLiteQuery(sql, args.toTypedArray())
+    }
 }

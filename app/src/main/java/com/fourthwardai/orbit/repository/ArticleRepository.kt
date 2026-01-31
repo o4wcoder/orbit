@@ -3,6 +3,7 @@ package com.fourthwardai.orbit.repository
 import androidx.paging.PagingData
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
+import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.ApiResult
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
@@ -39,7 +40,7 @@ interface ArticleRepository {
      * The Flow does not execute any queries until collected.
      * Paging controls when and how data is loaded.
      */
-    fun pagedArticles(): Flow<PagingData<Article>>
+    fun pagedArticles(filter: FeedFilter): Flow<PagingData<Article>>
 
-    fun pagedSavedArticles(): Flow<PagingData<Article>>
+    fun pagedSavedArticles(filter: FeedFilter): Flow<PagingData<Article>>
 }

@@ -5,6 +5,7 @@ import androidx.paging.LoadType
 import androidx.paging.PagingState
 import androidx.paging.RemoteMediator
 import androidx.room.withTransaction
+import com.fourthwardai.orbit.data.local.ArticleCategoryCrossRef
 import com.fourthwardai.orbit.data.local.ArticleRemoteKeyEntity
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.data.local.OrbitDatabase
@@ -61,16 +62,34 @@ class ArticlesRemoteMediator(
                 is ApiResult.Success -> pageResult.data
                 is ApiResult.Failure -> return MediatorResult.Error(pageResult.error.toThrowable())
             }
-            val entities = page.articles.map { it.toEntity() }
+            val articles = page.articles
+            val entities = articles.map { it.toEntity() }
+
+            // Flatten categories (dedupe by id)
+            val categoryEntities = articles
+                .flatMap { it.categories }
+                .distinctBy { it.id }
+                .map { it.toEntity() }
+
+            // Build crossrefs
+            val crossRefs = articles.flatMap { article ->
+                article.categories.map { category ->
+                    ArticleCategoryCrossRef(
+                        articleId = article.id,
+                        categoryId = category.id,
+                    )
+                }
+            }
 
             db.withTransaction {
                 if (loadType == LoadType.REFRESH) {
                     keyDao.clear(feedId)
-                    // If you have cross tables (article_categories), clear those too.
                     clearOnRefresh()
                 }
 
                 articleDao.insertAll(entities)
+                articleDao.insertCategories(categoryEntities)
+                articleDao.insertCrossRefs(crossRefs)
 
                 if (page.articles.isNotEmpty()) {
                     val next = page.nextCursor

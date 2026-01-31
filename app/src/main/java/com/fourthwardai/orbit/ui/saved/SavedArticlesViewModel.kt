@@ -12,7 +12,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 @HiltViewModel
@@ -35,17 +34,7 @@ class SavedArticlesViewModel @Inject constructor(
         filter
             .flatMapLatest { filter ->
                 articleRepository
-                    .pagedSavedArticles()
-                    .map { pagingData ->
-                        pagingData.filter { article ->
-                            val matchesGroup = filter.selectedGroups.isEmpty() ||
-                                article.categories.any { it.group in filter.selectedGroups }
-                            val matchesCategory = filter.selectedCategoryIds.isEmpty() ||
-                                article.categories.any { it.id in filter.selectedCategoryIds }
-                            val matchesBookmarked = !filter.bookmarkedOnly || article.isBookmarked
-                            matchesGroup && matchesCategory && matchesBookmarked
-                        }
-                    }
+                    .pagedSavedArticles(filter)
             }
             .cachedIn(viewModelScope)
 
