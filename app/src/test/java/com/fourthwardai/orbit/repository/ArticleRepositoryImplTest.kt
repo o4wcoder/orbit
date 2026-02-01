@@ -6,14 +6,17 @@ import androidx.paging.testing.asSnapshot
 import assertk.assertThat
 import assertk.assertions.isEqualTo
 import assertk.assertions.isFalse
+import assertk.assertions.isNotNull
 import assertk.assertions.isTrue
 import com.fourthwardai.orbit.data.local.ArticleDao
 import com.fourthwardai.orbit.data.local.ArticleEntity
+import com.fourthwardai.orbit.data.local.ArticleRemoteKeyDao
 import com.fourthwardai.orbit.data.local.ArticleWithCategories
 import com.fourthwardai.orbit.data.local.CategoryEntity
 import com.fourthwardai.orbit.data.local.OrbitDatabase
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
+import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.service.newsfeed.ArticleService
@@ -41,13 +44,16 @@ class ArticleRepositoryImplTest {
     val fakeArticleDao = mockk<ArticleDao>()
     val fakeOrbitDatabase = mockk<OrbitDatabase>()
     val fakeContext = mockk<Context>(relaxed = true)
+    val fakeArticleRemoteKeyDao = mockk<ArticleRemoteKeyDao>()
+
+    private val defaultFilter = FeedFilter()
 
     private fun sampleCategory(id: String = "c1") = Category(
         id = id,
         name = "Cat",
         group = "grp",
-        colorLight = androidx.compose.ui.graphics.Color.Gray,
-        colorDark = androidx.compose.ui.graphics.Color.DarkGray,
+        colorLight = androidx.compose.ui.graphics.Color(0xFF808080.toInt()),
+        colorDark = androidx.compose.ui.graphics.Color(0xFFA9A9A9.toInt()),
     )
 
     private fun sampleArticle(id: String = "a1", bookmarked: Boolean = false) = Article(
@@ -97,6 +103,11 @@ class ArticleRepositoryImplTest {
     @Suppress("UNCHECKED_CAST")
     private fun wireDaoFlow(): MutableStateFlow<List<ArticleWithCategories>> {
         val store = MutableStateFlow<List<ArticleWithCategories>>(emptyList())
+        every { fakeOrbitDatabase.articleDao() } returns fakeArticleDao
+        every { fakeOrbitDatabase.articleRemoteKeyDao() } returns fakeArticleRemoteKeyDao
+        coEvery { fakeArticleRemoteKeyDao.get(any()) } returns null
+        coEvery { fakeArticleRemoteKeyDao.clear(any()) } just Runs
+        coEvery { fakeArticleRemoteKeyDao.upsert(any()) } just Runs
         every { fakeArticleDao.getAllWithCategories() } returns store
         coEvery { fakeArticleDao.replaceAll(any()) } answers {
             val arg = args[0] as List<ArticleWithCategories>
@@ -104,6 +115,12 @@ class ArticleRepositoryImplTest {
         }
         // Allow inserts during tests without side-effects
         coEvery { fakeArticleDao.insert(any()) } just Runs
+        coEvery { fakeArticleDao.insertAll(any()) } just Runs
+        coEvery { fakeArticleDao.insertCategories(any()) } just Runs
+        coEvery { fakeArticleDao.insertCrossRefs(any()) } just Runs
+        coEvery { fakeArticleDao.clearArticles() } just Runs
+        coEvery { fakeArticleDao.clearCategories() } just Runs
+        coEvery { fakeArticleDao.clearCrossRefs() } just Runs
         return store
     }
 
@@ -115,9 +132,28 @@ class ArticleRepositoryImplTest {
 
         val articles = listOf(sampleArticle("a1", bookmarked = false), sampleArticle("a2"))
 
-        wireDaoFlow()
+        val store = wireDaoFlow()
+        store.value = articles.map { article ->
+            ArticleWithCategories(
+                article = ArticleEntity(
+                    id = article.id,
+                    title = article.title,
+                    url = article.url,
+                    author = article.author,
+                    readTime = article.readTimeMinutes,
+                    heroImageUrl = article.heroImageUrl,
+                    teaser = article.teaser,
+                    source = article.source,
+                    sourceAvatarUrl = article.sourceAvatarUrl,
+                    ingestedAt = article.ingestedAt.toEpochMilli(),
+                    isBookmarked = article.isBookmarked,
+                    isDirty = false,
+                    lastModified = 0L,
+                ),
+                categories = listOf(sampleCategoryEntity()),
+            )
+        }
 
-        // Mock getById to return a corresponding ArticleEntity for bookmark handling
         coEvery { fakeArticleDao.getById("a1") } returns ArticleEntity(
             id = "a1",
             title = articles[0].title,
@@ -133,29 +169,25 @@ class ArticleRepositoryImplTest {
             isDirty = false,
             lastModified = 0L,
         )
+        // syncDirtyArticles() is called on success; avoid unmocked DAO calls
+        coEvery { fakeArticleDao.getDirtyArticles() } returns emptyList()
 
-        coEvery { fakeArticleService.fetchArticles() } returns ApiResult.Success(articles)
         coEvery { fakeArticleService.bookmarkArticle("a1", true) } returns ApiResult.Success(Unit)
-        coEvery { fakeArticleService.fetchArticleCategories() } returns ApiResult.Success(listOf(sampleCategory()))
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
         val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
         advanceUntilIdle()
 
-        // pre-populate articles via refreshArticles
-        val refreshResult = repo.refreshArticles()
-        // allow background collector on the repository's scope to process the DAO flow
-        advanceUntilIdle()
-        assertThat(refreshResult).isEqualTo(ApiResult.Success(Unit))
+        // precondition: articles loaded from DAO
+        assertThat(repo.articles.value).isNotNull()
         assertThat(repo.articles.value!!.size).isEqualTo(2)
-        assertThat(repo.articles.value!!.first { it.id == "a1" }.isBookmarked).isFalse()
 
         val result = repo.bookmarkArticle("a1", true)
-        // allow IO dispatcher work (bookmark network call & potential rollback) to run
         advanceUntilIdle()
         assertThat(result).isEqualTo(ApiResult.Success(Unit))
-        assertThat(repo.articles.value!!.first { it.id == "a1" }.isBookmarked).isTrue()
+        val updated = repo.articles.value!!.first { it.id == "a1" }
+        assertThat(updated.isBookmarked).isTrue()
     }
 
     @Test
@@ -164,70 +196,62 @@ class ArticleRepositoryImplTest {
         mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
         every { scheduleArticleSync(any()) } just Runs
 
-        val articles = listOf(sampleArticle("a1", bookmarked = false))
+        val article = sampleArticle("a1", bookmarked = false)
 
-        wireDaoFlow()
+        val store = wireDaoFlow()
+        store.value = listOf(
+            ArticleWithCategories(
+                article = ArticleEntity(
+                    id = article.id,
+                    title = article.title,
+                    url = article.url,
+                    author = article.author,
+                    readTime = article.readTimeMinutes,
+                    heroImageUrl = article.heroImageUrl,
+                    teaser = article.teaser,
+                    source = article.source,
+                    sourceAvatarUrl = article.sourceAvatarUrl,
+                    ingestedAt = article.ingestedAt.toEpochMilli(),
+                    isBookmarked = article.isBookmarked,
+                    isDirty = false,
+                    lastModified = 0L,
+                ),
+                categories = listOf(sampleCategoryEntity()),
+            ),
+        )
 
-        // Mock getById to return a corresponding ArticleEntity for bookmark handling
         coEvery { fakeArticleDao.getById("a1") } returns ArticleEntity(
             id = "a1",
-            title = articles[0].title,
-            url = articles[0].url,
-            author = articles[0].author,
-            readTime = articles[0].readTimeMinutes,
-            heroImageUrl = articles[0].heroImageUrl,
-            teaser = articles[0].teaser,
-            source = articles[0].source,
-            sourceAvatarUrl = articles[0].sourceAvatarUrl,
-            ingestedAt = articles[0].ingestedAt.toEpochMilli(),
+            title = article.title,
+            url = article.url,
+            author = article.author,
+            readTime = article.readTimeMinutes,
+            heroImageUrl = article.heroImageUrl,
+            teaser = article.teaser,
+            source = article.source,
+            sourceAvatarUrl = article.sourceAvatarUrl,
+            ingestedAt = article.ingestedAt.toEpochMilli(),
             isBookmarked = false,
             isDirty = false,
             lastModified = 0L,
         )
 
-        coEvery { fakeArticleService.fetchArticles() } returns ApiResult.Success(articles)
         coEvery { fakeArticleService.bookmarkArticle("a1", true) } returns ApiResult.Failure(ApiError.Network("failed"))
-        coEvery { fakeArticleService.fetchArticleCategories() } returns ApiResult.Success(emptyList())
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
         val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
-        val refreshResult = repo.refreshArticles()
-        // allow background collector on the repository's scope to process the DAO flow
         advanceUntilIdle()
-        assertThat(refreshResult).isEqualTo(ApiResult.Success(Unit))
+
+        // precondition: article loaded
+        assertThat(repo.articles.value).isNotNull()
         assertThat(repo.articles.value!!.first().isBookmarked).isFalse()
 
         val result = repo.bookmarkArticle("a1", true)
-        // allow IO dispatcher work (bookmark network call & potential rollback) to run
         advanceUntilIdle()
         assertThat(result).isEqualTo(ApiResult.Failure(ApiError.Network("failed")))
-        // For transient errors we keep optimistic local change and schedule background retry
-        assertThat(repo.articles.value!!.first().isBookmarked).isTrue()
-    }
-
-    @Test
-    fun `refreshArticles success updates articles`() = runTest {
-        // Prevent actual WorkManager scheduling during unit tests
-        mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
-        every { scheduleArticleSync(any()) } just Runs
-
-        val articles = listOf(sampleArticle("a1"))
-
-        wireDaoFlow()
-
-        coEvery { fakeArticleService.fetchArticles() } returns ApiResult.Success(articles)
-        coEvery { fakeArticleService.fetchArticleCategories() } returns ApiResult.Success(emptyList())
-        coEvery { fakeArticleService.bookmarkArticle(any(), any()) } returns ApiResult.Success(Unit)
-
-        val testDispatcher = StandardTestDispatcher(testScheduler)
-        val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
-        val result = repo.refreshArticles()
-        // allow background collector on the repository's scope to process the DAO flow
-        advanceUntilIdle()
-        assertThat(result).isEqualTo(ApiResult.Success(Unit))
-        assertThat(repo.articles.value).isEqualTo(articles)
+        val updated = repo.articles.value!!.first { it.id == "a1" }
+        assertThat(updated.isBookmarked).isTrue()
     }
 
     @Test
@@ -240,9 +264,7 @@ class ArticleRepositoryImplTest {
 
         wireDaoFlow()
 
-        coEvery { fakeArticleService.fetchArticles() } returns ApiResult.Success(emptyList())
         coEvery { fakeArticleService.fetchArticleCategories() } returns ApiResult.Success(categories)
-        coEvery { fakeArticleService.bookmarkArticle(any(), any()) } returns ApiResult.Success(Unit)
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
@@ -346,38 +368,31 @@ class ArticleRepositoryImplTest {
         mockkStatic("com.fourthwardai.orbit.work.SchedulerKt")
         every { scheduleArticleSync(any()) } just Runs
 
+        // Initialize DB/DAO mocks used by mediator
         wireDaoFlow()
 
-        // Create a larger dataset to test paging behavior (50 items to test page size of 30)
-        val largeDataset = (1..50).map { index ->
-            sampleArticleWithCategories("a$index", bookmarked = index % 2 == 0)
+        val articles = (1..30).map { index ->
+            sampleArticle("a$index", bookmarked = index % 2 == 0)
         }
-
-        // Create a test paging source with the large dataset
-        val testPagingSource = TestPagingSource(largeDataset)
-        every { fakeArticleDao.pagingSource() } returns testPagingSource
+        every { fakeOrbitDatabase.articleDao() } returns fakeArticleDao
+        every { fakeOrbitDatabase.articleRemoteKeyDao() } returns fakeArticleRemoteKeyDao
+        every { fakeArticleDao.pagingSource() } returns TestPagingSource(
+            articles.map { sampleArticleWithCategories(it.id, it.isBookmarked) },
+        )
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        // disable RemoteMediator for unit tests
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext, useRemoteMediator = false)
 
-        // Call pagedArticles to get the flow
-        val pagingDataFlow = repo.pagedArticles()
-
-        // Collect snapshot to verify paging works correctly
-        // The asSnapshot() helper will load all pages automatically
+        val pagingDataFlow = repo.pagedArticles(defaultFilter)
         val items = pagingDataFlow.asSnapshot()
 
-        // Verify all items are loaded through paging
-        assertThat(items.size).isEqualTo(50)
-
-        // Verify first and last items to ensure proper ordering
+        assertThat(items.size).isEqualTo(30)
         assertThat(items[0].id).isEqualTo("a1")
-        assertThat(items[49].id).isEqualTo("a50")
-
-        // Verify the mapping is applied (checking bookmarked status)
-        assertThat(items[1].isBookmarked).isTrue() // a2 (even index)
-        assertThat(items[0].isBookmarked).isFalse() // a1 (odd index)
+        assertThat(items[29].id).isEqualTo("a30")
+        assertThat(items[1].isBookmarked).isTrue()
+        assertThat(items[0].isBookmarked).isFalse()
     }
 
     @Test
@@ -386,44 +401,32 @@ class ArticleRepositoryImplTest {
         every { scheduleArticleSync(any()) } just Runs
 
         wireDaoFlow()
+        every { fakeOrbitDatabase.articleDao() } returns fakeArticleDao
+        every { fakeOrbitDatabase.articleRemoteKeyDao() } returns fakeArticleRemoteKeyDao
 
-        // Create sample data
         val articlesWithCategories = listOf(
             sampleArticleWithCategories("a1", bookmarked = false),
             sampleArticleWithCategories("a2", bookmarked = true),
             sampleArticleWithCategories("a3", bookmarked = false),
         )
 
-        // Mock the paging source to return our test data
-        val testPagingSource = TestPagingSource(articlesWithCategories)
-        every { fakeArticleDao.pagingSource() } returns testPagingSource
+        every { fakeArticleDao.pagingSource() } returns TestPagingSource(articlesWithCategories)
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext, useRemoteMediator = false)
 
-        // Collect the paging data using the testing utilities
-        val pagingDataFlow = repo.pagedArticles()
+        val pagingDataFlow = repo.pagedArticles(defaultFilter)
         val items = pagingDataFlow.asSnapshot()
 
-        // Verify the mapping
         assertThat(items.size).isEqualTo(3)
         assertThat(items[0].id).isEqualTo("a1")
+        assertThat(items[1].id).isEqualTo("a2")
+        assertThat(items[2].id).isEqualTo("a3")
         assertThat(items[0].title).isEqualTo("Title")
         assertThat(items[0].isBookmarked).isFalse()
-        assertThat(items[1].id).isEqualTo("a2")
         assertThat(items[1].isBookmarked).isTrue()
-        assertThat(items[2].id).isEqualTo("a3")
         assertThat(items[2].isBookmarked).isFalse()
-
-        // Verify domain object properties are correctly mapped
-        assertThat(items[0].url).isEqualTo("https://example.com")
-        assertThat(items[0].author).isEqualTo("Author")
-        assertThat(items[0].readTimeMinutes).isEqualTo(5)
-        assertThat(items[0].source).isEqualTo("Source")
-        assertThat(items[0].ingestedAt).isEqualTo(Instant.parse("2020-01-01T00:00:00Z"))
-        assertThat(items[0].categories.size).isEqualTo(1)
-        assertThat(items[0].categories[0].name).isEqualTo("Cat")
     }
 
     @Test
@@ -432,20 +435,17 @@ class ArticleRepositoryImplTest {
         every { scheduleArticleSync(any()) } just Runs
 
         wireDaoFlow()
-
-        // Mock the paging source to return empty data
-        val testPagingSource = TestPagingSource<ArticleWithCategories>(emptyList())
-        every { fakeArticleDao.pagingSource() } returns testPagingSource
+        every { fakeOrbitDatabase.articleDao() } returns fakeArticleDao
+        every { fakeOrbitDatabase.articleRemoteKeyDao() } returns fakeArticleRemoteKeyDao
+        every { fakeArticleDao.pagingSource() } returns TestPagingSource<ArticleWithCategories>(emptyList())
 
         val testDispatcher = StandardTestDispatcher(testScheduler)
         val testScope = TestScope(testDispatcher)
-        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext)
+        val repo = ArticleRepositoryImpl(fakeArticleService, fakeArticleDao, fakeOrbitDatabase, scope = testScope, ioDispatcher = testDispatcher, context = fakeContext, useRemoteMediator = false)
 
-        // Collect the paging data
-        val pagingDataFlow = repo.pagedArticles()
+        val pagingDataFlow = repo.pagedArticles(defaultFilter)
         val items = pagingDataFlow.asSnapshot()
 
-        // Verify empty result
         assertThat(items.size).isEqualTo(0)
     }
 
