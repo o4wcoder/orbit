@@ -145,6 +145,7 @@ class ArticleRepositoryImpl @Inject constructor(
 
     @OptIn(ExperimentalPagingApi::class)
     override fun pagedArticles(filter: FeedFilter): Flow<PagingData<Article>> {
+        val useRemoteMediator = !filter.hasUserSelectedFilters && !filter.bookmarkedOnly
         val mediator = ArticlesRemoteMediator(
             db = orbitDatabase,
             pageSize = 30,
@@ -157,9 +158,9 @@ class ArticleRepositoryImpl @Inject constructor(
 
         return Pager(
             config = pagingConfig,
-            remoteMediator = mediator,
+            remoteMediator = if (useRemoteMediator) mediator else null,
             pagingSourceFactory = {
-                if (!filter.hasUserSelectedFilters && !filter.bookmarkedOnly) {
+                if (useRemoteMediator) {
                     articleDao.pagingSource()
                 } else {
                     articleDao.pagingSourceFiltered(buildFilteredArticlesQuery(filter, false))
