@@ -44,7 +44,6 @@ class ArticleRepositoryImpl @Inject constructor(
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
     @param:ApplicationContext private val context: Context,
-    private val useRemoteMediator: Boolean = true, // testing hook
 ) : ArticleRepository {
 
     val pagingConfig = PagingConfig(
@@ -146,21 +145,17 @@ class ArticleRepositoryImpl @Inject constructor(
 
     @OptIn(ExperimentalPagingApi::class)
     override fun pagedArticles(filter: FeedFilter): Flow<PagingData<Article>> {
-        val mediator = if (useRemoteMediator) {
-            ArticlesRemoteMediator(
-                db = orbitDatabase,
-                pageSize = 30,
-                feedId = "feed",
-                fetchPage = { limit, cursor -> service.fetchArticlesPage(limit, cursor) },
-                clearOnRefresh = {
-                    articleDao.clearArticles()
-                    articleDao.clearCategories()
-                    articleDao.clearCrossRefs()
-                },
-            )
-        } else {
-            null
-        }
+        val mediator = ArticlesRemoteMediator(
+            db = orbitDatabase,
+            pageSize = 30,
+            feedId = "feed",
+            fetchPage = { limit, cursor -> service.fetchArticlesPage(limit, cursor) },
+            clearOnRefresh = {
+                articleDao.clearArticles()
+                articleDao.clearCategories()
+                articleDao.clearCrossRefs()
+            },
+        )
 
         return Pager(
             config = pagingConfig,
