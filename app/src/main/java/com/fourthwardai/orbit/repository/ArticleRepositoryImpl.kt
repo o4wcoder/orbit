@@ -9,15 +9,15 @@ import androidx.paging.map
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteQuery
 import com.fourthwardai.orbit.data.local.ArticleDao
-import com.fourthwardai.orbit.data.local.ArticleWithCategories
+import com.fourthwardai.orbit.data.local.DatabaseConstants
 import com.fourthwardai.orbit.data.local.OrbitDatabase
 import com.fourthwardai.orbit.data.local.toDomain
-import com.fourthwardai.orbit.data.local.toEntity
 import com.fourthwardai.orbit.data.paging.ArticlesRemoteMediator
 import com.fourthwardai.orbit.di.IODispatcher
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
+import com.fourthwardai.orbit.domain.asDelimiterList
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.network.isTransient
@@ -139,25 +139,6 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-//    override suspend fun refreshArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
-//        // TODO: Removed this as Step 0 in adding RemoteMediator for paging
-//        when (val result = service.fetchArticles()) {
-//            is ApiResult.Success -> {
-//                try {
-//                    val articlesWithCategories = mapArticlesWithCategories(result.data)
-//                    articleDao.replaceAll(articlesWithCategories)
-//                    _articles.value = result.data
-//                    ApiResult.Success(Unit)
-//                } catch (e: Exception) {
-//                    ApiResult.Failure(ApiError.Unknown(e.message ?: "Failed to persist articles"))
-//                }
-//            }
-//            is ApiResult.Failure -> {
-//                ApiResult.Failure(result.error)
-//            }
-//        }
-//    }
-
     override suspend fun getCategories(): ApiResult<List<Category>> = withContext(ioDispatcher) {
         service.fetchArticleCategories()
     }
@@ -181,7 +162,7 @@ class ArticleRepositoryImpl @Inject constructor(
                 if (!filter.hasUserSelectedFilters && !filter.bookmarkedOnly) {
                     articleDao.pagingSource()
                 } else {
-                    articleDao.pagingSourceFiltered(buildFilteredArticlesQuery(filter))
+                    articleDao.pagingSourceFiltered(buildFilteredArticlesQuery(filter, false))
                 }
             },
 
@@ -206,7 +187,7 @@ class ArticleRepositoryImpl @Inject constructor(
                 if (!filter.hasUserSelectedFilters) {
                     articleDao.savedPagingSource()
                 } else {
-                    articleDao.savedPagingSourceFiltered(buildFilteredSavedArticlesQuery(filter))
+                    articleDao.pagingSourceFiltered(buildFilteredArticlesQuery(filter, true))
                 }
             },
         ).flow
@@ -215,30 +196,23 @@ class ArticleRepositoryImpl @Inject constructor(
             }
     }
 
-    private fun mapArticlesWithCategories(articles: List<Article>): List<ArticleWithCategories> =
-        articles.map { article ->
-            val entity = article.toEntity()
-            val categories = article.categories.map { it.toEntity() }
-            ArticleWithCategories(article = entity, categories = categories)
-        }
-
-    private fun buildFilteredArticlesQuery(filter: FeedFilter): SupportSQLiteQuery {
+    private fun buildFilteredArticlesQuery(
+        filter: FeedFilter,
+        bookmarkedOnly: Boolean,
+    ): SupportSQLiteQuery {
         val where = mutableListOf<String>()
         val args = mutableListOf<Any>()
 
-        if (filter.bookmarkedOnly) {
+        if (bookmarkedOnly) {
             where += "isBookmarked = 1"
         }
 
         // Category IDs filter: article must have ANY of the selected categories
         if (filter.selectedCategoryIds.isNotEmpty()) {
-            val placeholders = filter.selectedCategoryIds.joinToString(",") { "?" }
+            val placeholders = filter.selectedCategoryIds.asDelimiterList()
             where += """
           EXISTS (
-            SELECT 1
-            FROM article_category_cross_ref acc
-            WHERE acc.articleId = articles.id
-              AND acc.categoryId IN ($placeholders)
+            ${DatabaseConstants.Query.SELECT_ARTICLES_BY_CATEGORY} IN ($placeholders)
           )
             """.trimIndent()
             args.addAll(filter.selectedCategoryIds.map { it as Any })
@@ -246,15 +220,10 @@ class ArticleRepositoryImpl @Inject constructor(
 
         // Group filter: article must have ANY category whose group is in selected groups
         if (filter.selectedGroups.isNotEmpty()) {
-            val placeholders = filter.selectedGroups.joinToString(",") { "?" }
+            val placeholders = filter.selectedGroups.asDelimiterList()
             where += """
-      EXISTS (
-        SELECT 1
-        FROM article_category_cross_ref acc
-        JOIN categories c ON c.id = acc.categoryId
-        WHERE acc.articleId = articles.id
-          AND c.`group` IN ($placeholders)
-      )
+            EXISTS (
+            ${DatabaseConstants.Query.SELECT_ARTICLES_BY_CATEGORY_GROUP} IN ($placeholders))
             """.trimIndent()
 
             args.addAll(filter.selectedGroups.map { it as Any })
@@ -263,54 +232,9 @@ class ArticleRepositoryImpl @Inject constructor(
         val whereClause = if (where.isEmpty()) "" else "WHERE " + where.joinToString(" AND ")
 
         val sql = """
-      SELECT * FROM articles
+      ${DatabaseConstants.Query.SELECT_ALL_ARTICLES}
       $whereClause
-      ORDER BY ingestedAt DESC, id DESC
-        """.trimIndent()
-
-        return SimpleSQLiteQuery(sql, args.toTypedArray())
-    }
-
-    private fun buildFilteredSavedArticlesQuery(filter: FeedFilter): SupportSQLiteQuery {
-        val where = mutableListOf<String>()
-        val args = mutableListOf<Any>()
-
-        // Always saved-only
-        where += "isBookmarked = 1"
-
-        if (filter.selectedCategoryIds.isNotEmpty()) {
-            val placeholders = filter.selectedCategoryIds.joinToString(",") { "?" }
-            where += """
-          EXISTS (
-            SELECT 1
-            FROM article_category_cross_ref acc
-            WHERE acc.articleId = articles.id
-              AND acc.categoryId IN ($placeholders)
-          )
-            """.trimIndent()
-
-            args.addAll(filter.selectedCategoryIds.map { it as Any })
-        }
-
-        if (filter.selectedGroups.isNotEmpty()) {
-            val placeholders = filter.selectedGroups.joinToString(",") { "?" }
-            where += """
-          EXISTS (
-            SELECT 1
-            FROM article_category_cross_ref acc
-            JOIN categories c ON c.id = acc.categoryId
-            WHERE acc.articleId = articles.id
-              AND c.`group` IN ($placeholders)
-          )
-            """.trimIndent()
-
-            args.addAll(filter.selectedGroups.map { it as Any })
-        }
-
-        val sql = """
-      SELECT * FROM articles
-      WHERE ${where.joinToString(" AND ")}
-      ORDER BY ingestedAt DESC, id DESC
+      ${DatabaseConstants.Query.ORDER_BY_INGESTED_DESC}
         """.trimIndent()
 
         return SimpleSQLiteQuery(sql, args.toTypedArray())
