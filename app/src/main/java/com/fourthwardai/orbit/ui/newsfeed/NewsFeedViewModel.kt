@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
-import androidx.paging.filter
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.repository.ArticleRepository
 import com.fourthwardai.orbit.ui.ArticleListViewModelDelegate
