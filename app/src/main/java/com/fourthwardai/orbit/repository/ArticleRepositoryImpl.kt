@@ -151,9 +151,7 @@ class ArticleRepositoryImpl @Inject constructor(
             feedId = DatabaseConstants.Feed.FEED_ID_MAIN,
             fetchPage = { limit, cursor -> service.fetchArticlesPage(limit, cursor) },
             clearOnRefresh = {
-                articleDao.clearArticles()
-                articleDao.clearCategories()
-                articleDao.clearCrossRefs()
+                articleDao.clearNonBookmarkedArticles()
             },
         )
 

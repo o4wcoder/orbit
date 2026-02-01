@@ -44,6 +44,9 @@ interface ArticleDao {
     @Query("DELETE FROM articles")
     suspend fun clearArticles()
 
+    @Query("DELETE FROM articles WHERE isBookmarked = 0")
+    suspend fun clearNonBookmarkedArticles()
+
     @Transaction
     suspend fun replaceAll(articlesWithCategories: List<ArticleWithCategories>) {
         // Clear all related tables and insert fresh data atomically
