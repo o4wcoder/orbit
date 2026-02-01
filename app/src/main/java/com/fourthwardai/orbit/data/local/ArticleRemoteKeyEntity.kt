@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "article_remote_keys")
 data class ArticleRemoteKeyEntity(
-    @PrimaryKey val feedId: String = "main",
+    @PrimaryKey val feedId: String,
     val nextBeforeIngestedAt: Long?,
     val nextBeforeId: String?,
     val updatedAt: Long,

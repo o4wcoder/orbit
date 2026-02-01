@@ -4,6 +4,10 @@ import com.fourthwardai.orbit.data.local.DatabaseConstants.Table.ARTICLES
 
 class DatabaseConstants {
 
+    object Feed {
+        const val FEED_ID_MAIN = "main"
+        const val FEED_ID_SAVED = "saved"
+    }
     object Table {
         const val ARTICLES = "articles"
         const val CATEGORIES = "categories"

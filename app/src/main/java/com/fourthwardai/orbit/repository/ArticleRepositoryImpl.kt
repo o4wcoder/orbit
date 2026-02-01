@@ -148,7 +148,7 @@ class ArticleRepositoryImpl @Inject constructor(
         val mediator = ArticlesRemoteMediator(
             db = orbitDatabase,
             pageSize = 30,
-            feedId = "feed",
+            feedId = DatabaseConstants.Feed.FEED_ID_MAIN,
             fetchPage = { limit, cursor -> service.fetchArticlesPage(limit, cursor) },
             clearOnRefresh = {
                 articleDao.clearArticles()
@@ -180,7 +180,7 @@ class ArticleRepositoryImpl @Inject constructor(
             remoteMediator = ArticlesRemoteMediator(
                 db = orbitDatabase,
                 pageSize = 30,
-                feedId = "saved",
+                feedId = DatabaseConstants.Feed.FEED_ID_SAVED,
                 fetchPage = { limit, cursor -> service.fetchSavedArticlesPage(limit, cursor) },
                 clearOnRefresh = {},
             ),
