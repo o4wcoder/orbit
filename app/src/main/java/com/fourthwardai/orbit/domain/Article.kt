@@ -1,7 +1,6 @@
 package com.fourthwardai.orbit.domain
 
 import androidx.compose.ui.graphics.Color
-import androidx.core.graphics.toColorInt
 import com.fourthwardai.orbit.network.dto.ArticleDto
 import java.time.Instant
 import java.time.ZoneId
@@ -46,10 +45,24 @@ fun ArticleDto.toDomain(): Article =
     )
 
 fun String.toComposeColor(): Color {
+    val s = trim().removePrefix("#")
+
+    // Accept RRGGBB or AARRGGBB
+    if (s.length != 6 && s.length != 8) return Color.Gray
+
     return try {
-        val formattedHexString = if (this.startsWith("#")) this else "#$this"
-        Color(formattedHexString.toColorInt())
-    } catch (e: IllegalArgumentException) {
+        val value = s.toLong(16)
+
+        // Build ARGB as a 32-bit int
+        val argb: Int = if (s.length == 6) {
+            // Implicit alpha = FF
+            (0xFF000000.toInt() or value.toInt())
+        } else {
+            value.toInt()
+        }
+
+        Color(argb)
+    } catch (_: Throwable) {
         Color.Gray
     }
 }

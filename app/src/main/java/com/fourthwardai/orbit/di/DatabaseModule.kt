@@ -4,8 +4,8 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.fourthwardai.orbit.data.local.AppDatabase
 import com.fourthwardai.orbit.data.local.ArticleDao
+import com.fourthwardai.orbit.data.local.OrbitDatabase
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -45,10 +45,10 @@ object DatabaseModule {
 
     @Provides
     @Singleton
-    fun provideDatabase(@ApplicationContext context: Context): AppDatabase {
+    fun provideDatabase(@ApplicationContext context: Context): OrbitDatabase {
         return Room.databaseBuilder(
             context.applicationContext,
-            AppDatabase::class.java,
+            OrbitDatabase::class.java,
             "orbit-db",
         )
             // Add explicit migrations for schema changes so user data is preserved.
@@ -57,5 +57,5 @@ object DatabaseModule {
     }
 
     @Provides
-    fun provideArticleDao(db: AppDatabase): ArticleDao = db.articleDao()
+    fun provideArticleDao(db: OrbitDatabase): ArticleDao = db.articleDao()
 }

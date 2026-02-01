@@ -14,7 +14,7 @@ data class ArticleEntity(
     val teaser: String? = null,
     val source: String,
     val sourceAvatarUrl: String? = null,
-    val ingestedAt: String,
+    val ingestedAt: Long,
     val isBookmarked: Boolean = false,
     val isDirty: Boolean = false,
     val lastModified: Long = 0L,

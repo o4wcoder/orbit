@@ -2,12 +2,19 @@ package com.fourthwardai.orbit.ui.newsfeed
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.repository.ArticleRepository
 import com.fourthwardai.orbit.ui.ArticleListViewModelDelegate
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flatMapLatest
 import javax.inject.Inject
 
 @HiltViewModel
+@OptIn(ExperimentalCoroutinesApi::class)
 class NewsFeedViewModel @Inject constructor(
     private val articleRepository: ArticleRepository,
 ) : ViewModel() {
@@ -22,7 +29,12 @@ class NewsFeedViewModel @Inject constructor(
     val filter = delegate.filter
     val uiState = delegate.uiState
 
-    val pagedArticles = delegate.pagedArticles
+    val pagedArticles: Flow<PagingData<Article>> =
+        filter
+            .flatMapLatest { filter ->
+                articleRepository.pagedArticles(filter)
+            }
+            .cachedIn(viewModelScope)
 
     fun onFiltersApplied(selectedGroups: Set<String>, selectedCategoryIds: Set<String>) {
         delegate.applyFilters(selectedGroups, selectedCategoryIds)
@@ -30,9 +42,5 @@ class NewsFeedViewModel @Inject constructor(
 
     fun onBookmarkClick(id: String, isBookmarked: Boolean) {
         delegate.bookmarkArticle(id, isBookmarked)
-    }
-
-    fun refreshArticles() {
-        delegate.refreshArticles()
     }
 }

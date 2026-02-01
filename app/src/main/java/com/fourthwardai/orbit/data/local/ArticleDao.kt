@@ -5,7 +5,9 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.RawQuery
 import androidx.room.Transaction
+import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -42,6 +44,9 @@ interface ArticleDao {
     @Query("DELETE FROM articles")
     suspend fun clearArticles()
 
+    @Query("DELETE FROM articles WHERE isBookmarked = 0")
+    suspend fun clearNonBookmarkedArticles()
+
     @Transaction
     suspend fun replaceAll(articlesWithCategories: List<ArticleWithCategories>) {
         // Clear all related tables and insert fresh data atomically
@@ -65,6 +70,14 @@ interface ArticleDao {
     suspend fun getById(id: String): ArticleEntity?
 
     @Transaction
-    @Query("SELECT * FROM articles ORDER BY ingestedAt DESC")
+    @Query("SELECT * FROM articles ORDER BY ingestedAt DESC, id DESC")
     fun pagingSource(): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @Query("SELECT * FROM articles WHERE isBookmarked = 1 ORDER BY ingestedAt DESC, id DESC")
+    fun savedPagingSource(): PagingSource<Int, ArticleWithCategories>
+
+    @Transaction
+    @RawQuery(observedEntities = [ArticleEntity::class, ArticleCategoryCrossRef::class, CategoryEntity::class])
+    fun pagingSourceFiltered(query: SupportSQLiteQuery): PagingSource<Int, ArticleWithCategories>
 }

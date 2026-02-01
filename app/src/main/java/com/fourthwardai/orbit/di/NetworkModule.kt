@@ -3,6 +3,7 @@ package com.fourthwardai.orbit.di
 import android.app.Application
 import com.fourthwardai.orbit.BuildConfig
 import com.fourthwardai.orbit.data.local.ArticleDao
+import com.fourthwardai.orbit.data.local.OrbitDatabase
 import com.fourthwardai.orbit.network.ktorHttpClient
 import com.fourthwardai.orbit.repository.ArticleRepository
 import com.fourthwardai.orbit.repository.ArticleRepositoryImpl
@@ -33,12 +34,14 @@ object NetworkModule {
     fun provideArticleRepository(
         service: ArticleService,
         articleDao: ArticleDao,
+        orbitDatabase: OrbitDatabase,
         @IODispatcher dispatcher: CoroutineDispatcher,
         application: Application,
     ): ArticleRepository =
         ArticleRepositoryImpl(
             service = service,
             articleDao = articleDao,
+            orbitDatabase = orbitDatabase,
             ioDispatcher = dispatcher,
             context = application.applicationContext,
         )

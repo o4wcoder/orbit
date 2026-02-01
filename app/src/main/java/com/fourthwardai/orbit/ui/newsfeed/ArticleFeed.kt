@@ -61,6 +61,7 @@ import androidx.paging.LoadState
 import androidx.paging.PagingData
 import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
+import androidx.paging.compose.itemKey
 import com.fourthwardai.orbit.R
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
@@ -79,7 +80,6 @@ fun ArticleFeed(
     pagedArticles: LazyPagingItems<Article>,
     categories: List<Category>,
     filters: FeedFilter,
-    onRefresh: () -> Unit,
     onApply: (selectedGroups: Set<String>, selectedCategoryIds: Set<String>) -> Unit,
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
@@ -90,7 +90,6 @@ fun ArticleFeed(
 
     // Scroll-to-top effect when filters change (from dialog)
     LaunchedEffect(filters) {
-        // pick which state to scroll depending on layout, or just scroll both safely
         listState.scrollToItem(0)
         staggeredGridState.scrollToItem(0)
     }
@@ -107,7 +106,6 @@ fun ArticleFeed(
             listState = listState,
             staggeredGridState = staggeredGridState,
             isRefreshEnabled = isRefreshEnabled,
-            onRefresh = onRefresh,
             onBookmarkClick = onBookmarkClick,
             modifier = Modifier,
         )
@@ -121,7 +119,6 @@ private fun ArticleFeedContent(
     listState: LazyListState,
     staggeredGridState: LazyStaggeredGridState,
     isRefreshEnabled: Boolean,
-    onRefresh: () -> Unit,
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -143,10 +140,12 @@ private fun ArticleFeedContent(
             endY = heightPx,
         )
 
+        val isRefreshing = pagedArticles.loadState.refresh is LoadState.Loading
+
         PullToRefreshBox(
             state = pullState,
-            isRefreshing = uiModel.isRefreshing,
-            onRefresh = onRefresh,
+            isRefreshing = isRefreshing,
+            onRefresh = { pagedArticles.refresh() },
             modifier = Modifier
                 .fillMaxSize()
                 .background(color = MaterialTheme.colorScheme.background),
@@ -187,10 +186,8 @@ private fun ArticleFeedContent(
                                 VerticalSpacer(16.dp)
                             }
                             items(
-                                pagedArticles.itemCount,
-                                key = { index ->
-                                    pagedArticles[index]?.id ?: "placeholder-$index"
-                                },
+                                count = pagedArticles.itemCount,
+                                key = pagedArticles.itemKey { it.id },
                             ) { index ->
                                 val article = pagedArticles[index] ?: return@items
 
@@ -378,7 +375,6 @@ fun ArticleFeedPreview() {
                 listState = rememberLazyListState(),
                 isRefreshEnabled = true,
                 staggeredGridState = rememberLazyStaggeredGridState(),
-                onRefresh = {},
                 onBookmarkClick = { _, _ -> },
             )
         }
@@ -407,7 +403,6 @@ fun ArticleFeedTabletPreview() {
                 listState = rememberLazyListState(),
                 isRefreshEnabled = true,
                 staggeredGridState = rememberLazyStaggeredGridState(),
-                onRefresh = {},
                 onBookmarkClick = { _, _ -> },
             )
         }

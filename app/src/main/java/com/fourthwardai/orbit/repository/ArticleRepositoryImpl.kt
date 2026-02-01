@@ -1,17 +1,23 @@
 package com.fourthwardai.orbit.repository
 
 import android.content.Context
+import androidx.paging.ExperimentalPagingApi
 import androidx.paging.Pager
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.map
+import androidx.sqlite.db.SimpleSQLiteQuery
+import androidx.sqlite.db.SupportSQLiteQuery
 import com.fourthwardai.orbit.data.local.ArticleDao
-import com.fourthwardai.orbit.data.local.ArticleWithCategories
+import com.fourthwardai.orbit.data.local.DatabaseConstants
+import com.fourthwardai.orbit.data.local.OrbitDatabase
 import com.fourthwardai.orbit.data.local.toDomain
-import com.fourthwardai.orbit.data.local.toEntity
+import com.fourthwardai.orbit.data.paging.ArticlesRemoteMediator
 import com.fourthwardai.orbit.di.IODispatcher
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
+import com.fourthwardai.orbit.domain.FeedFilter
+import com.fourthwardai.orbit.domain.asDelimiterList
 import com.fourthwardai.orbit.network.ApiError
 import com.fourthwardai.orbit.network.ApiResult
 import com.fourthwardai.orbit.network.isTransient
@@ -22,7 +28,6 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,10 +40,18 @@ import javax.inject.Inject
 class ArticleRepositoryImpl @Inject constructor(
     private val service: ArticleService,
     private val articleDao: ArticleDao,
+    private val orbitDatabase: OrbitDatabase,
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     @param:IODispatcher private val ioDispatcher: CoroutineDispatcher,
     @param:ApplicationContext private val context: Context,
 ) : ArticleRepository {
+
+    val pagingConfig = PagingConfig(
+        pageSize = 30,
+        initialLoadSize = 30,
+        prefetchDistance = 5,
+        enablePlaceholders = false,
+    )
 
     private val _articles = MutableStateFlow<List<Article>?>(null)
     override val articles: StateFlow<List<Article>?> = _articles
@@ -51,20 +64,6 @@ class ArticleRepositoryImpl @Inject constructor(
                 .collect { domainArticles ->
                     _articles.value = domainArticles
                 }
-        }
-
-        scope.launch {
-            try {
-                val result = withContext(ioDispatcher) { service.fetchArticles() }
-                if (result is ApiResult.Success) {
-                    val articlesWithCategories = mapArticlesWithCategories(result.data)
-                    // replaceAll runs in a transaction on the DAO
-                    articleDao.replaceAll(articlesWithCategories)
-                }
-            } catch (t: Throwable) {
-                Timber.d("CGH: Failed to sync articles from network: $t")
-                ensureActive()
-            }
         }
     }
 
@@ -140,46 +139,104 @@ class ArticleRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun refreshArticles(): ApiResult<Unit> = withContext(ioDispatcher) {
-        when (val result = service.fetchArticles()) {
-            is ApiResult.Success -> {
-                try {
-                    val articlesWithCategories = mapArticlesWithCategories(result.data)
-                    articleDao.replaceAll(articlesWithCategories)
-                    _articles.value = result.data
-                    ApiResult.Success(Unit)
-                } catch (e: Exception) {
-                    ApiResult.Failure(ApiError.Unknown(e.message ?: "Failed to persist articles"))
-                }
-            }
-            is ApiResult.Failure -> {
-                ApiResult.Failure(result.error)
-            }
-        }
-    }
-
     override suspend fun getCategories(): ApiResult<List<Category>> = withContext(ioDispatcher) {
         service.fetchArticleCategories()
     }
 
-    override fun pagedArticles(): Flow<PagingData<Article>> {
+    @OptIn(ExperimentalPagingApi::class)
+    override fun pagedArticles(filter: FeedFilter): Flow<PagingData<Article>> {
+        val useRemoteMediator = !filter.hasUserSelectedFilters && !filter.bookmarkedOnly
+        val mediator = ArticlesRemoteMediator(
+            db = orbitDatabase,
+            pageSize = 30,
+            feedId = DatabaseConstants.Feed.FEED_ID_MAIN,
+            fetchPage = { limit, cursor -> service.fetchArticlesPage(limit, cursor) },
+            clearOnRefresh = {
+                articleDao.clearNonBookmarkedArticles()
+            },
+        )
+
         return Pager(
-            config = PagingConfig(
-                pageSize = 30,
-                prefetchDistance = 10,
-                enablePlaceholders = false,
-            ),
-            pagingSourceFactory = { articleDao.pagingSource() },
+            config = pagingConfig,
+            remoteMediator = if (useRemoteMediator) mediator else null,
+            pagingSourceFactory = {
+                if (useRemoteMediator) {
+                    articleDao.pagingSource()
+                } else {
+                    articleDao.pagingSourceFiltered(buildFilteredArticlesQuery(filter, false))
+                }
+            },
         ).flow
             .map { pagingData ->
                 pagingData.map { it.toDomain() }
             }
     }
 
-    private fun mapArticlesWithCategories(articles: List<Article>): List<ArticleWithCategories> =
-        articles.map { article ->
-            val entity = article.toEntity()
-            val categories = article.categories.map { it.toEntity() }
-            ArticleWithCategories(article = entity, categories = categories)
+    @OptIn(ExperimentalPagingApi::class)
+    override fun pagedSavedArticles(filter: FeedFilter): Flow<PagingData<Article>> {
+        return Pager(
+            config = pagingConfig,
+            remoteMediator = ArticlesRemoteMediator(
+                db = orbitDatabase,
+                pageSize = 30,
+                feedId = DatabaseConstants.Feed.FEED_ID_SAVED,
+                fetchPage = { limit, cursor -> service.fetchSavedArticlesPage(limit, cursor) },
+                clearOnRefresh = {},
+            ),
+            pagingSourceFactory = {
+                if (!filter.hasUserSelectedFilters) {
+                    articleDao.savedPagingSource()
+                } else {
+                    articleDao.pagingSourceFiltered(buildFilteredArticlesQuery(filter, true))
+                }
+            },
+        ).flow
+            .map { pagingData ->
+                pagingData.map { it.toDomain() }
+            }
+    }
+
+    private fun buildFilteredArticlesQuery(
+        filter: FeedFilter,
+        bookmarkedOnly: Boolean,
+    ): SupportSQLiteQuery {
+        val where = mutableListOf<String>()
+        val args = mutableListOf<Any>()
+
+        if (bookmarkedOnly) {
+            where += "isBookmarked = 1"
         }
+
+        // Category IDs filter: article must have ANY of the selected categories
+        if (filter.selectedCategoryIds.isNotEmpty()) {
+            val placeholders = filter.selectedCategoryIds.asDelimiterList()
+            where += """
+          EXISTS (
+            ${DatabaseConstants.Query.SELECT_ARTICLES_BY_CATEGORY} IN ($placeholders)
+          )
+            """.trimIndent()
+            args.addAll(filter.selectedCategoryIds.map { it as Any })
+        }
+
+        // Group filter: article must have ANY category whose group is in selected groups
+        if (filter.selectedGroups.isNotEmpty()) {
+            val placeholders = filter.selectedGroups.asDelimiterList()
+            where += """
+            EXISTS (
+            ${DatabaseConstants.Query.SELECT_ARTICLES_BY_CATEGORY_GROUP} IN ($placeholders))
+            """.trimIndent()
+
+            args.addAll(filter.selectedGroups.map { it as Any })
+        }
+
+        val whereClause = if (where.isEmpty()) "" else "WHERE " + where.joinToString(" AND ")
+
+        val sql = """
+      ${DatabaseConstants.Query.SELECT_ALL_ARTICLES}
+      $whereClause
+      ${DatabaseConstants.Query.ORDER_BY_INGESTED_DESC}
+        """.trimIndent()
+
+        return SimpleSQLiteQuery(sql, args.toTypedArray())
+    }
 }

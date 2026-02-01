@@ -8,3 +8,5 @@ data class FeedFilter(
     val hasUserSelectedFilters =
         selectedGroups.isNotEmpty() || selectedCategoryIds.isNotEmpty()
 }
+
+fun Set<String>.asDelimiterList() = this.joinToString(",") { "?" }

@@ -1,10 +1,6 @@
 package com.fourthwardai.orbit.ui
 
-import androidx.paging.PagingData
-import androidx.paging.cachedIn
-import androidx.paging.filter
 import androidx.paging.map
-import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.network.onFailure
@@ -15,12 +11,10 @@ import com.fourthwardai.orbit.ui.newsfeed.NewsFeedUiModel
 import com.fourthwardai.orbit.ui.newsfeed.toContentUiModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -38,24 +32,6 @@ class ArticleListViewModelDelegate(
 
     private val _filter = MutableStateFlow(FeedFilter(bookmarkedOnly = bookmarkedOnlyDefault))
     val filter = _filter.asStateFlow()
-
-    val pagedArticles: Flow<PagingData<Article>> =
-        _filter
-            .flatMapLatest { filter ->
-                articleRepository
-                    .pagedArticles()
-                    .map { pagingData ->
-                        pagingData.filter { article ->
-                            val matchesGroup = filter.selectedGroups.isEmpty() ||
-                                article.categories.any { it.group in filter.selectedGroups }
-                            val matchesCategory = filter.selectedCategoryIds.isEmpty() ||
-                                article.categories.any { it.id in filter.selectedCategoryIds }
-                            val matchesBookmarked = !filter.bookmarkedOnly || article.isBookmarked
-                            matchesGroup && matchesCategory && matchesBookmarked
-                        }
-                    }
-            }
-            .cachedIn(viewModelScope)
 
     private val _dataState = MutableStateFlow(NewsFeedDataState())
 
@@ -101,18 +77,6 @@ class ArticleListViewModelDelegate(
             categoriesResult.onFailure { error ->
                 Timber.e("Failed to fetch categories. Error = ${error.message}")
             }
-        }
-    }
-
-    fun refreshArticles() {
-        viewModelScope.launch {
-            _dataState.update { it.copy(isRefreshing = true) }
-
-            val result = articleRepository.refreshArticles()
-            result.onFailure { error ->
-                Timber.e("Failed to refresh articles. Error = ${error.message}")
-            }
-            _dataState.update { it.copy(isRefreshing = false) }
         }
     }
 }
