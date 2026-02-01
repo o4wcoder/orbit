@@ -1,8 +1,6 @@
 package com.fourthwardai.orbit.repository
 
 import androidx.paging.PagingData
-import androidx.paging.PagingSource
-import androidx.paging.PagingState
 import com.fourthwardai.orbit.domain.Article
 import com.fourthwardai.orbit.domain.Category
 import com.fourthwardai.orbit.domain.FeedFilter
