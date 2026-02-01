@@ -77,8 +77,4 @@ interface ArticleDao {
     @Transaction
     @RawQuery(observedEntities = [ArticleEntity::class, ArticleCategoryCrossRef::class, CategoryEntity::class])
     fun pagingSourceFiltered(query: SupportSQLiteQuery): PagingSource<Int, ArticleWithCategories>
-
-//    @Transaction
-//    @RawQuery(observedEntities = [ArticleEntity::class, ArticleCategoryCrossRef::class, CategoryEntity::class])
-//    fun savedPagingSourceFiltered(query: SupportSQLiteQuery): PagingSource<Int, ArticleWithCategories>
 }
