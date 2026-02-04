@@ -216,7 +216,7 @@ private fun ArticleFeedContent(
                             modifier = Modifier.fillMaxSize(),
                             // increase content padding so outer edges are separated from screen edges
                             contentPadding = PaddingValues(
-                                horizontal = 24.dp,
+                                horizontal = 12.dp,
                                 vertical = 24.dp,
                             ),
                         ) {
