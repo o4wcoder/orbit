@@ -328,7 +328,7 @@ private fun NavigationRailBar(navController: NavHostController) {
                 tooltip = { PlainTooltip { Text(headerDescription) } },
                 state = rememberTooltipState(),
             ) {
-                val iconContentDesc = if (state.currentValue == WideNavigationRailValue.Expanded) {
+                val iconContentDesc = if (state.targetValue == WideNavigationRailValue.Expanded) {
                     stringResource(R.string.expanded)
                 } else {
                     stringResource(R.string.collapsed)
