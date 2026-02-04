@@ -236,7 +236,6 @@ private fun FilterOverlay(currentRoute: String?, newsEntry: NavBackStackEntry?, 
                         initialSelectedCategoryIds = newsVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
                         onApply = { groups, categoryIds ->
                             newsVm.onFiltersApplied(groups, categoryIds)
-                            //  showFilters = false
                             onShowFiltersChanged(false)
                         },
                         onDismiss = { onShowFiltersChanged(false) },
