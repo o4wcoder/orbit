@@ -312,7 +312,7 @@ private fun NavigationRailBar(navController: NavHostController) {
         if (state.targetValue == WideNavigationRailValue.Expanded) {
             stringResource(R.string.rail_header_description_collapsed)
         } else {
-            stringResource(R.string.rail_header_description_collapsed)
+            stringResource(R.string.rail_header_description_expanded)
         }
 
     WideNavigationRail(
