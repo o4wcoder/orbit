@@ -6,7 +6,7 @@
     <string name="expanded">Expanded</string>
     <string name="collapsed">Collapsed</string>
     <string name="rail_header_description_expanded">Expand rail</string>
-    <string name="rail_header_description_collapsed">Collapse rail"</string>
+    <string name="rail_header_description_collapsed">Collapse rail</string>
 
     <string name="settings_tab">Settings</string>
     <string name="settings_tab_placeholder">Settings screen (empty)</string>
@@ -23,7 +23,7 @@
     <string name="filters_bookmarked">Bookmarked</string>
     <string name="filters_apply_filters">Apply filters (%d)</string>
 
-    <string name="filters_home_title">Home"</string>
+    <string name="filters_home_title">Home</string>
 
     <string name="filters_saved_title">Saved</string>
     <string name="filters_saved_bookmarked_only">Bookmarked only</string>
