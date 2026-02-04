@@ -206,7 +206,7 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
 
 @Composable
 private fun FilterOverlay(currentRoute: String?, newsEntry: NavBackStackEntry?, savedEntry: NavBackStackEntry?, showFilters: Boolean, onShowFiltersChanged: (Boolean) -> Unit) {
-// Intercept system back button when filters overlay is shown so it dismisses the overlay
+    /** Intercept system back button when filters overlay is shown so it dismisses the overlay. */
     if (showFilters) {
         BackHandler {
             onShowFiltersChanged(false)
