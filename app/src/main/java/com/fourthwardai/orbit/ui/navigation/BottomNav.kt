@@ -58,6 +58,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -192,63 +193,76 @@ fun OrbitAppNavHost(modifier: Modifier = Modifier) {
                 }
             }
         }
-        // Intercept system back button when filters overlay is shown so it dismisses the overlay
-        if (showFilters) {
-            BackHandler {
-                showFilters = false
-            }
+
+        FilterOverlay(
+            currentRoute = currentRoute,
+            newsEntry = newsEntry,
+            savedEntry = savedEntry,
+            showFilters = showFilters,
+            onShowFiltersChanged = { showFilters = it },
+        )
+    }
+}
+
+@Composable
+private fun FilterOverlay(currentRoute: String?, newsEntry: NavBackStackEntry?, savedEntry: NavBackStackEntry?, showFilters: Boolean, onShowFiltersChanged: (Boolean) -> Unit) {
+// Intercept system back button when filters overlay is shown so it dismisses the overlay
+    if (showFilters) {
+        BackHandler {
+            onShowFiltersChanged(false)
         }
+    }
 
-        // Animated fullscreen filter screen overlay
-        AnimatedVisibility(
-            visible = showFilters && (currentRoute == Screen.News.route || currentRoute == Screen.Saved.route),
-            enter = slideInVertically(
-                initialOffsetY = { fullHeight -> fullHeight },
-                animationSpec = tween(320),
-            ) + fadeIn(animationSpec = tween(320)),
-            exit = slideOutVertically(
-                targetOffsetY = { fullHeight -> fullHeight },
-                animationSpec = tween(280),
-            ) + fadeOut(animationSpec = tween(280)),
-        ) {
-            when (currentRoute) {
-                Screen.News.route -> {
-                    newsEntry?.let {
-                        val newsVm: NewsFeedViewModel = hiltViewModel(it)
+    // Animated fullscreen filter screen overlay
+    AnimatedVisibility(
+        visible = showFilters && (currentRoute == Screen.News.route || currentRoute == Screen.Saved.route),
+        enter = slideInVertically(
+            initialOffsetY = { fullHeight -> fullHeight },
+            animationSpec = tween(320),
+        ) + fadeIn(animationSpec = tween(320)),
+        exit = slideOutVertically(
+            targetOffsetY = { fullHeight -> fullHeight },
+            animationSpec = tween(280),
+        ) + fadeOut(animationSpec = tween(280)),
+    ) {
+        when (currentRoute) {
+            Screen.News.route -> {
+                newsEntry?.let {
+                    val newsVm: NewsFeedViewModel = hiltViewModel(it)
 
-                        CategoryFilterScreen(
-                            categories = newsVm.categories.collectAsStateWithLifecycle().value,
-                            initialSelectedGroups = newsVm.filter.collectAsStateWithLifecycle().value.selectedGroups,
-                            initialSelectedCategoryIds = newsVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
-                            onApply = { groups, categoryIds ->
-                                newsVm.onFiltersApplied(groups, categoryIds)
-                                showFilters = false
-                            },
-                            onDismiss = { showFilters = false },
-                        )
-                    }
+                    CategoryFilterScreen(
+                        categories = newsVm.categories.collectAsStateWithLifecycle().value,
+                        initialSelectedGroups = newsVm.filter.collectAsStateWithLifecycle().value.selectedGroups,
+                        initialSelectedCategoryIds = newsVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
+                        onApply = { groups, categoryIds ->
+                            newsVm.onFiltersApplied(groups, categoryIds)
+                            //  showFilters = false
+                            onShowFiltersChanged(false)
+                        },
+                        onDismiss = { onShowFiltersChanged(false) },
+                    )
                 }
+            }
 
-                Screen.Saved.route -> {
-                    savedEntry?.let {
-                        val savedVm: SavedArticlesViewModel = hiltViewModel(it)
+            Screen.Saved.route -> {
+                savedEntry?.let {
+                    val savedVm: SavedArticlesViewModel = hiltViewModel(it)
 
-                        CategoryFilterScreen(
-                            categories = savedVm.categories.collectAsStateWithLifecycle().value,
-                            initialSelectedGroups = savedVm.filter.collectAsStateWithLifecycle().value.selectedGroups,
-                            initialSelectedCategoryIds = savedVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
-                            onApply = { groups, categoryIds ->
-                                savedVm.onFiltersApplied(groups, categoryIds)
-                                showFilters = false
-                            },
-                            onDismiss = { showFilters = false },
-                        )
-                    }
+                    CategoryFilterScreen(
+                        categories = savedVm.categories.collectAsStateWithLifecycle().value,
+                        initialSelectedGroups = savedVm.filter.collectAsStateWithLifecycle().value.selectedGroups,
+                        initialSelectedCategoryIds = savedVm.filter.collectAsStateWithLifecycle().value.selectedCategoryIds,
+                        onApply = { groups, categoryIds ->
+                            savedVm.onFiltersApplied(groups, categoryIds)
+                            onShowFiltersChanged(false)
+                        },
+                        onDismiss = { onShowFiltersChanged(false) },
+                    )
                 }
+            }
 
-                else -> {
-                    // No overlay for other routes
-                }
+            else -> {
+                // No overlay for other routes
             }
         }
     }
@@ -296,10 +310,11 @@ private fun NavigationRailBar(navController: NavHostController) {
     val scope = rememberCoroutineScope()
     val headerDescription =
         if (state.targetValue == WideNavigationRailValue.Expanded) {
-            "Collapse rail"
+            stringResource(R.string.rail_header_description_collapsed)
         } else {
-            "Expand rail"
+            stringResource(R.string.rail_header_description_collapsed)
         }
+
     WideNavigationRail(
         windowInsets = WindowInsets(0),
         modifier = Modifier.fillMaxHeight(),
@@ -314,18 +329,18 @@ private fun NavigationRailBar(navController: NavHostController) {
                 tooltip = { PlainTooltip { Text(headerDescription) } },
                 state = rememberTooltipState(),
             ) {
+                val iconContentDesc = if (state.currentValue == WideNavigationRailValue.Expanded) {
+                    stringResource(R.string.expanded)
+                } else {
+                    stringResource(R.string.collapsed)
+                }
                 IconButton(
                     modifier =
-                    Modifier.padding(start = 24.dp).semantics {
-                        // The button must announce the expanded or collapsed state of the
-                        // rail for accessibility.
-                        stateDescription =
-                            if (state.currentValue == WideNavigationRailValue.Expanded) {
-                                "Expanded"
-                            } else {
-                                "Collapsed"
-                            }
-                    },
+                    Modifier
+                        .padding(start = 24.dp)
+                        .semantics {
+                            stateDescription = iconContentDesc
+                        },
                     onClick = {
                         scope.launch {
                             if (state.targetValue == WideNavigationRailValue.Expanded) {

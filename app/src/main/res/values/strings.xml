@@ -3,6 +3,11 @@
     <string name="home_tab">Home</string>
     <string name="saved_tab">Saved</string>
 
+    <string name="expanded">Expanded</string>
+    <string name="collapsed">Collapsed</string>
+    <string name="rail_header_description_expanded">Expand rail</string>
+    <string name="rail_header_description_collapsed">Collapse rail"</string>
+
     <string name="settings_tab">Settings</string>
     <string name="settings_tab_placeholder">Settings screen (empty)</string>
 
