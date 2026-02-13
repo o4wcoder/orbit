@@ -221,10 +221,8 @@ private fun ArticleFeedContent(
                             ),
                         ) {
                             items(
-                                pagedArticles.itemCount,
-                                key = { index ->
-                                    pagedArticles[index]?.id ?: "placeholder-$index"
-                                },
+                                count = pagedArticles.itemCount,
+                                key = pagedArticles.itemKey { it.id },
                             ) { index ->
                                 val article = pagedArticles[index] ?: return@items
                                 ArticleCard(
