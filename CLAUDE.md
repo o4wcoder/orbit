@@ -48,6 +48,21 @@ Design requirements:
 fail gracefully • Data normalization must enforce schema validity •
 Duplicate article detection should be supported
 
+## n8n Workflows
+
+The ingestion pipeline and backend APIs run as n8n workflows, not code
+in this repo. They are managed through the n8n MCP server (`.mcp.json`).
+
+Workflows are backed up to the private repo
+https://github.com/o4wcoder/n8n-workflows under `orbit/`, one exported
+JSON file per workflow.
+
+• After changing a workflow, export it and commit it to that repo •
+Back up sub-workflows too, not just the parent workflow • Export via
+the n8n API in n8n's standard workflow export format (2-space indented
+JSON) • Credentials must only appear as references (id and name), never
+secrets
+
 ------------------------------------------------------------------------
 
 # Storage Layer
