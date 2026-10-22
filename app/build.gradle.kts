@@ -19,16 +19,13 @@ plugins {
     alias(libs.plugins.spotless)
     // Kotlin Parcelize for @Parcelize support
     id("kotlin-parcelize")
-    id("kotlin-kapt")
+    alias(libs.plugins.ksp)
 }
-
-// Use the legacy apply for kapt to avoid plugin version resolution conflicts
-apply(plugin = "kotlin-kapt")
 
 android {
     namespace = "com.fourthwardai.orbit"
     compileSdk {
-        version = release(36)
+        version = release(37)
     }
 
     defaultConfig {
@@ -82,7 +79,8 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
     implementation(libs.androidx.compose.foundation.layout)
     implementation(libs.androidx.compose.ui.text.google.fonts)
-    implementation(libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.navigation.compose)
     implementation(libs.coil.compose)
     implementation(libs.revenuecat.placeholder)
     implementation(libs.androidx.compose.runtime)
@@ -100,14 +98,14 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     implementation(libs.androidx.room.paging)
-    kapt(libs.room.compiler)
+    ksp(libs.room.compiler)
 
-    kapt(libs.hilt.compiler)
+    ksp(libs.hilt.compiler)
 
     // WorkManager and Hilt Work
     implementation(libs.androidx.work.runtime.ktx)
     implementation(libs.androidx.hilt.work)
-    kapt(libs.androidx.hilt.compiler)
+    ksp(libs.androidx.hilt.compiler)
     testImplementation(libs.androidx.work.testing)
 
     testImplementation(libs.junit)
