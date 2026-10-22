@@ -81,6 +81,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.text.google.fonts)
     implementation(libs.androidx.hilt.lifecycle.viewmodel.compose)
     implementation(libs.androidx.navigation.compose)
+    implementation(libs.androidx.browser)
     implementation(libs.coil.compose)
     implementation(libs.revenuecat.placeholder)
     implementation(libs.androidx.compose.runtime)

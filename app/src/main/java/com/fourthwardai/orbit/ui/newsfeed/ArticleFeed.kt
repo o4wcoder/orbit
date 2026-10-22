@@ -2,9 +2,6 @@
 
 package com.fourthwardai.orbit.ui.newsfeed
 
-import android.content.Context
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -47,6 +44,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -69,9 +67,8 @@ import com.fourthwardai.orbit.domain.FeedFilter
 import com.fourthwardai.orbit.extensions.VerticalSpacer
 import com.fourthwardai.orbit.ui.theme.LocalWindowClassSize
 import com.fourthwardai.orbit.ui.theme.OrbitTheme
+import com.fourthwardai.orbit.ui.util.openInCustomTab
 import kotlinx.coroutines.flow.flowOf
-
-private const val MEDIUM_PACKAGE = "com.medium.reader"
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -128,6 +125,7 @@ private fun ArticleFeedContent(
         val windowSizeClass = LocalWindowClassSize.current
         val widthSizeClass = windowSizeClass.widthSizeClass
         val pullState = rememberPullToRefreshState()
+        val toolbarColor = MaterialTheme.colorScheme.surface.toArgb()
 
         // Taking the gradient out for now. Doesn't quite look right.
         val heightPx = with(LocalDensity.current) { maxHeight.toPx() }
@@ -196,7 +194,7 @@ private fun ArticleFeedContent(
                                     onBookmarkClick = onBookmarkClick,
                                     modifier = Modifier.clickable(
                                         role = Role.Button,
-                                        onClick = { openMediumOrBrowser(context, article.url) },
+                                        onClick = { openInCustomTab(context, article.url, toolbarColor) },
                                     ),
                                 )
                                 VerticalSpacer(16.dp)
@@ -232,12 +230,7 @@ private fun ArticleFeedContent(
                                         .padding(12.dp)
                                         .clickable(
                                             role = Role.Button,
-                                            onClick = {
-                                                openMediumOrBrowser(
-                                                    context,
-                                                    article.url,
-                                                )
-                                            },
+                                            onClick = { openInCustomTab(context, article.url, toolbarColor) },
                                         ),
                                 )
                             }
@@ -332,23 +325,6 @@ private fun FooterError(modifier: Modifier = Modifier, onRetry: () -> Unit) {
         FilledTonalButton(onClick = onRetry) {
             Text(text = stringResource(R.string.error_loading_more_articles_retry))
         }
-    }
-}
-
-fun openMediumOrBrowser(context: Context, url: String) {
-    val uri = Uri.parse(url)
-
-    // 1) Try Medium app explicitly
-    val mediumIntent = Intent(Intent.ACTION_VIEW, uri).apply {
-        `package` = MEDIUM_PACKAGE
-    }
-
-    try {
-        context.startActivity(mediumIntent)
-    } catch (_: Exception) {
-        // 2) Fallback to any browser
-        val browserIntent = Intent(Intent.ACTION_VIEW, uri)
-        context.startActivity(browserIntent)
     }
 }
 

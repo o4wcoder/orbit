@@ -18,6 +18,7 @@ ktorVersion = "3.6.0"
 timberVersion = "5.0.1"
 hiltLifecycleViewModelCompose = "1.4.0"
 navigationCompose = "2.10.2"
+browser = "1.10.0"
 revenuecat = "1.0.4"
 assertk = "0.28.1"
 mockk = "1.14.11"
@@ -61,6 +62,7 @@ ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx
 timber = { group = "com.jakewharton.timber", name= "timber", version.ref = "timberVersion" }
 androidx-hilt-lifecycle-viewmodel-compose = { group = "androidx.hilt", name = "hilt-lifecycle-viewmodel-compose", version.ref = "hiltLifecycleViewModelCompose" }
 androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 revenuecat-placeholder = { group = "com.revenuecat.purchases", name = "placeholder", version.ref = "revenuecat" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
