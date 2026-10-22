@@ -1,6 +1,8 @@
 package com.fourthwardai.orbit
 
 import android.os.Bundle
+import android.view.View
+import android.view.ViewTreeObserver
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -22,6 +24,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 
@@ -34,18 +37,13 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        var themeSettings by mutableStateOf(
-            OrbitThemeSettings(
-                darkTheme = resources.configuration.isSystemInDarkTheme,
-                false,
-            ),
-        )
+        var themeSettings by mutableStateOf<OrbitThemeSettings?>(null)
 
         lifecycleScope.launch {
             lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 combine(
                     isSystemInDarkTheme(),
-                    viewModel.uiState,
+                    viewModel.uiState.filterIsInstance<MainActivityUiState.Success>(),
                 ) { systemDark, uiState ->
                     OrbitThemeSettings(
                         darkTheme = uiState.shouldUseDarkTheme(systemDark),
@@ -57,20 +55,36 @@ class MainActivity : ComponentActivity() {
                     .collect()
             }
         }
+        keepSplashScreenUntil { themeSettings != null }
         enableEdgeToEdge()
         setContent {
-            OrbitTheme(
-                darkTheme = themeSettings.darkTheme,
-                dynamicColor = !themeSettings.disableDynamicTheming,
-            ) {
-                val windowSizeClass = calculateWindowSizeClass(this)
-                CompositionLocalProvider(
-                    LocalWindowClassSize provides windowSizeClass,
+            themeSettings?.let { settings ->
+                OrbitTheme(
+                    darkTheme = settings.darkTheme,
+                    dynamicColor = !settings.disableDynamicTheming,
                 ) {
-                    OrbitAppNavHost()
+                    val windowSizeClass = calculateWindowSizeClass(this)
+                    CompositionLocalProvider(
+                        LocalWindowClassSize provides windowSizeClass,
+                    ) {
+                        OrbitAppNavHost()
+                    }
                 }
             }
         }
+    }
+
+    private fun keepSplashScreenUntil(isReady: () -> Boolean) {
+        val content = findViewById<View>(android.R.id.content)
+        content.viewTreeObserver.addOnPreDrawListener(
+            object : ViewTreeObserver.OnPreDrawListener {
+                override fun onPreDraw(): Boolean {
+                    if (!isReady()) return false
+                    content.viewTreeObserver.removeOnPreDrawListener(this)
+                    return true
+                }
+            },
+        )
     }
 }
 
