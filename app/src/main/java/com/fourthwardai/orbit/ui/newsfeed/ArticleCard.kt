@@ -46,8 +46,8 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -71,7 +71,7 @@ import com.revenuecat.placeholder.PlaceholderDefaults
 import com.revenuecat.placeholder.placeholder
 import kotlinx.coroutines.delay
 import java.time.Instant
-import java.util.Locale
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun ArticleCard(
@@ -79,9 +79,7 @@ fun ArticleCard(
     onBookmarkClick: (id: String, isBookmarked: Boolean) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val configuration = LocalConfiguration.current
-    val locale: Locale =
-        if (configuration.locales.isEmpty) Locale.getDefault() else configuration.locales[0]
+    val locale = LocalLocale.current.platformLocale
     val windowSizeClass = LocalWindowClassSize.current
     val widthSizeClass = windowSizeClass.widthSizeClass
 
@@ -123,7 +121,7 @@ fun ArticleCard(
                     LaunchedEffect(pressed) {
                         if (pressed) {
                             // keep the popped state briefly then return to normal
-                            delay(260)
+                            delay(260.milliseconds)
                             pressed = false
                         }
                     }

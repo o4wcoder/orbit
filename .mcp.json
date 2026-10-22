@@ -15,7 +15,7 @@
         "LOG_LEVEL": "error",
         "DISABLE_CONSOLE_OUTPUT": "true",
         "N8N_API_URL": "https://n8n.srv1047231.hstgr.cloud/api/v1",
-        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MTkzNWVlNy01MWVjLTQxOTUtYTAxYy01MmRlNjY5OTdiNDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzc0MTQ2NzY5LCJleHAiOjE3ODE5MDY0MDB9.O-e3wohe8ieTBHwjM8JQIOOzSxAbn40YoVIugpbF0_Y"
+        "N8N_API_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2MTkzNWVlNy01MWVjLTQxOTUtYTAxYy01MmRlNjY5OTdiNDkiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwiaWF0IjoxNzkxMjE0NjU4fQ.jg6J-t1c2gUjOIGaTlJE-SNJAhAyfgnsCVr9WIKTaZM"
       }
     }
   }

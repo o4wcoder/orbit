@@ -1,34 +1,36 @@
 [versions]
-agp = "9.0.0"
-kotlin = "2.3.0"
-coreKtx = "1.17.0"
+agp = "9.4.1"
+kotlin = "2.4.21"
+coreKtx = "1.19.1"
 junit = "4.13.2"
 junitVersion = "1.3.0"
 espressoCore = "3.7.0"
-lifecycleRuntimeKtx = "2.10.0"
-activityCompose = "1.12.2"
-composeBom = "2026.01.00"
-uiTextGoogleFonts = "1.10.1"
+lifecycleRuntimeKtx = "2.11.0"
+activityCompose = "1.13.0"
+composeBom = "2026.09.00"
+uiTextGoogleFonts = "1.12.1"
 coil = "2.7.0"
-runtime = "1.10.1"
-hilt = "2.58"
-hilt-plugin = "2.58"
-spotlessVersion = "8.1.0"
-ktorVersion = "3.3.3"
+runtime = "1.12.1"
+hilt = "2.60.1"
+hilt-plugin = "2.60.1"
+spotlessVersion = "8.10.4"
+ktorVersion = "3.6.0"
 timberVersion = "5.0.1"
-hiltNavigationCompose = "1.3.0"
-revenuecat = "1.0.2"
+hiltLifecycleViewModelCompose = "1.4.0"
+navigationCompose = "2.10.2"
+browser = "1.10.0"
+revenuecat = "1.0.4"
 assertk = "0.28.1"
-mockk = "1.14.7"
-kotlinx-coroutines-test = "1.10.2"
-room = "2.8.4"
-ksp = "2.3.0"
-datastore = "1.2.0"
-paging = "3.3.6"
+mockk = "1.14.11"
+kotlinx-coroutines-test = "1.11.0"
+room = "2.8.5"
+ksp = "2.3.12"
+datastore = "1.3.0"
+paging = "3.5.3"
 
 # WorkManager and Hilt Work
-workmanager = "2.11.0"
-hilt_work = "1.3.0"
+workmanager = "2.12.0"
+hilt_work = "1.4.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -58,7 +60,9 @@ ktor-client-logging = { module = "io.ktor:ktor-client-logging", version.ref = "k
 ktor-client-content-negotiation = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktorVersion" }
 ktor-serialization-kotlinx-json = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktorVersion" }
 timber = { group = "com.jakewharton.timber", name= "timber", version.ref = "timberVersion" }
-androidx-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
+androidx-hilt-lifecycle-viewmodel-compose = { group = "androidx.hilt", name = "hilt-lifecycle-viewmodel-compose", version.ref = "hiltLifecycleViewModelCompose" }
+androidx-navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigationCompose" }
+androidx-browser = { group = "androidx.browser", name = "browser", version.ref = "browser" }
 androidx-compose-foundation-layout = { group = "androidx.compose.foundation", name = "foundation-layout" }
 revenuecat-placeholder = { group = "com.revenuecat.purchases", name = "placeholder", version.ref = "revenuecat" }
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
